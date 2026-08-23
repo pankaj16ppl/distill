@@ -70,7 +70,6 @@
 <script src="js/components.js"></script>
 <script src="js/rating.js"></script>
 <script src="js/recommendation-card.js"></script>
-<script src="js/results.js"></script>
   <script>
     requireAuth();
     renderShell("recommendations");
@@ -259,13 +258,21 @@
     }
 
     // Event Listeners
+    // Pressing Search (or Enter) on this page ADDS the new keyword to the
+    // running conversation instead of replacing it — cards for the new
+    // query get appended below the old ones (like a chat growing with each
+    // new message), and every card is still generated from the *combined*
+    // set of keywords so far. This only resets when the user navigates to
+    // New Chat (a fresh page load with its own empty activeQueries).
     searchBtn.addEventListener('click', () => {
       const val = searchInput.value.trim();
       if (!val) return;
-      activeQueries = [val];
-      history.replaceState(null, "", `recommendations.html?q=${encodeURIComponent(val)}`);
+      const isFirstQuery = activeQueries.length === 0;
+      activeQueries.push(val);
+      history.replaceState(null, "", `recommendations.html?q=${encodeURIComponent(activeQueries.join(" "))}`);
       renderTags();
-      performSearch(false);
+      searchInput.value = '';
+      performSearch(!isFirstQuery);
     });
 
     searchInput.addEventListener('keydown', (e) => {

@@ -402,12 +402,18 @@ const tools = searchTools(fullQuery, 7);
     }
 
     // Event Listeners
+    // Same as recommendations.html: Search grows the chat (push + append)
+    // instead of resetting it, once this New Chat session already has a
+    // first query. A brand-new New Chat page load still starts empty, and
+    // navigating to New Chat again is the only thing that resets it.
     searchBtn.addEventListener('click', () => {
       const val = searchInput.value.trim();
       if (!val) return;
-      activeQueries = [val];
+      const isFirstQuery = activeQueries.length === 0;
+      activeQueries.push(val);
       renderTags();
-      performSearch(false);
+      searchInput.value = '';
+      performSearch(!isFirstQuery);
     });
 
     searchInput.addEventListener('keydown', (e) => {
