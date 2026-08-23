@@ -1,117 +1,190 @@
-const PRICING_LABEL = { free: "Free", hybrid: "Hybrid", paid: "Paid" };
-const PRICING_CLASS = {
-  free: "bg-green-light text-green-dark",
-  hybrid: "bg-yellow-50 text-hybrid",
-  paid: "bg-red-50 text-paid",
-};
+// js/results.js
 
-function fillCard(node, tool, isBest) {
-  node.querySelector(".tool-name").textContent = tool.name;
-  node.querySelector(".tool-category").textContent = tool.category;
-  node.querySelector(".tool-description").textContent = tool.description;
-  node.querySelector(".tool-rating").textContent = tool.rating.toFixed(1);
-  node.querySelector(".tool-link").href = tool.url;
+function mapDbToolToCard(tool) {
+  const pricingMap = {
+    Free: "free",
+    Freemium: "hybrid",
+    Paid: "paid",
+  };
 
-  const badge = node.querySelector(".pricing-badge");
-  badge.textContent = PRICING_LABEL[tool.pricing];
-  badge.className = `pricing-badge shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full ${PRICING_CLASS[tool.pricing]}`;
+  return {
+    id: tool.id,
+    name: tool.tool_name || "Unknown Tool",
+    category: tool.category || tool.subcategory || "AI Tool",
 
-  const prosList = node.querySelector(".tool-pros");
-  prosList.innerHTML = tool.pros
-    .slice(0, isBest ? 3 : 2)
-    .map((p) => `<li class="flex gap-1"><span>·</span><span>${p}</span></li>`)
-    .join("");
-  const consList = node.querySelector(".tool-cons");
-  consList.innerHTML = tool.cons
-    .slice(0, isBest ? 3 : 2)
-    .map((c) => `<li class="flex gap-1"><span>·</span><span>${c}</span></li>`)
-    .join("");
+    pricing: pricingMap[tool.pricing] || "hybrid",
+
+    credits: tool.free_plan_details || "No free credits",
+
+    description: tool.description || tool.primary_use || "",
+
+    pros: [
+      tool.best_use_cases || "Useful for multiple AI tasks",
+      tool.primary_use || "General AI functionality",
+    ],
+
+    cons: [
+      tool.login_required ? "Login required" : "No login required",
+      tool.pricing === "Paid"
+        ? "Paid service"
+        : "Some advanced features may require payment",
+    ],
+
+    rating: 0,
+
+    url: tool.official_website || "#",
+
+    logo_url: tool.logo_url || "",
+  };
 }
 
-function renderResults(tools, query) {
-  const [best, ...alts] = tools;
-  document.getElementById("queryLabel").textContent = `"${query}"`;
 
-  const bestSlot = document.getElementById("bestCardSlot");
-  bestSlot.innerHTML = "";
-  const bestNode = document.getElementById("recCardTemplate").content.cloneNode(true);
-  const bestCardEl = bestNode.querySelector(".rec-card");
-  bestCardEl.classList.add("ring-2", "ring-green", "shadow-card", "max-w-xl", "mx-auto", "scale-[1.02]");
-  fillCard(bestNode, best, true);
-  bestSlot.appendChild(bestNode);
+async function fetchSearchResults(query) {
+  const response = await fetch(
+  `http://localhost:5000/api/search?q=${encodeURIComponent(query)}`
+);
+  if (!response.ok) {
+    throw new Error(`Search failed: ${response.status}`);
+  }
 
-  const altSlot = document.getElementById("altCardsSlot");
-  altSlot.innerHTML = "";
-  alts.forEach((tool) => {
-    const node = document.getElementById("recCardTemplate").content.cloneNode(true);
-    node.querySelector(".rec-card").classList.add("rec-alt");
-    fillCard(node, tool, false);
-    altSlot.appendChild(node);
-  });
+  const result = await response.json();
 
-  if (window.lucide) lucide.createIcons();
+  if (!result.success) {
+    throw new Error(result.message || "Search failed");
+  }
+
+  return Array.isArray(result.data) ? result.data : [];
 }
 
-function showState(name) {
-  ["emptyState", "loadingState", "errorState", "resultsWrap"].forEach((id) => {
-    document.getElementById(id).classList.toggle("hidden", id !== name);
-  });
-}
 
-function runSearch(query, { forceError = false } = {}) {
-  if (!query) {
-    showState("emptyState");
+async function runSearch(query) {
+  const resultsBlocks = document.getElementById("resultsBlocks");
+
+  if (!resultsBlocks) {
+    console.error("❌ resultsBlocks container not found");
     return;
   }
-  showState("loadingState");
 
-  // Occasionally simulate a slow/failed API response so the retry +
-  // friendly-error state (required by the spec) is actually reachable in a
-  // frontend-only demo. Real integration would replace this with the
-  // Gemini API call's own error handling.
-  const shouldError = forceError || Math.random() < 0.12;
-  const delay = 700 + Math.random() * 500;
+  if (!query || !query.trim()) {
+    resultsBlocks.innerHTML = `
+      <div id="emptyState" class="text-center py-20">
+        <p class="mt-4 text-muted">
+          Search for a task above to see your matches.
+        </p>
+      </div>
+    `;
+    return;
+  }
 
-  setTimeout(() => {
-    if (shouldError) {
-      showState("errorState");
+  try {
+    console.log("🔎 Searching:", query);
+
+    resultsBlocks.innerHTML = `
+      <div class="text-center py-20">
+        <p class="text-muted">Finding the best AI tools...</p>
+      </div>
+    `;
+
+    const dbTools = await fetchSearchResults(query);
+
+    console.log("✅ API tools:", dbTools);
+    console.log("✅ API count:", dbTools.length);
+
+    if (!dbTools.length) {
+      resultsBlocks.innerHTML = `
+        <div class="text-center py-20">
+          <p class="text-muted">
+            No AI tools found for "${query}".
+          </p>
+        </div>
+      `;
       return;
     }
-    const matches = searchTools(query, 3);
-    renderResults(matches, query);
-    showState("resultsWrap");
-  }, delay);
+
+    const cardTools = dbTools.map(mapDbToolToCard);
+
+    console.log("✅ Mapped card tools:", cardTools);
+
+    renderRecommendationCards(
+      resultsBlocks,
+      cardTools
+    );
+
+    console.log("✅ Recommendation cards rendered");
+
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+
+  } catch (error) {
+    console.error("❌ Search error:", error);
+
+    resultsBlocks.innerHTML = `
+      <div class="text-center py-20">
+        <p class="text-red-500 font-semibold">
+          Something went wrong while loading recommendations.
+        </p>
+        <p class="text-muted mt-2">
+          Please try searching again.
+        </p>
+      </div>
+    `;
+  }
 }
 
+
 document.addEventListener("DOMContentLoaded", () => {
-  requireAuth();
-  renderShell("home");
-  initSearchBar({
-    inputId: "resultsSearchInput",
-    formId: "resultsSearchForm",
-    suggestId: "resultsSuggestions",
-    micId: "resultsMicBtn",
-    handleSubmit: false,
-  });
+
+  const input = document.getElementById("homeSearchInput");
+  const searchButton = document.getElementById("homeSearchBtn");
+
+  if (!input || !searchButton) {
+    console.error("❌ Search input or button not found");
+    return;
+  }
 
   const params = new URLSearchParams(window.location.search);
   const query = params.get("q") || "";
-  document.getElementById("resultsSearchInput").value = query;
 
-  let lastQuery = query;
-  runSearch(query);
+  if (query) {
+    input.value = query;
+    runSearch(query);
+  }
 
-  document.getElementById("resultsSearchForm").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const q = document.getElementById("resultsSearchInput").value.trim();
-    if (!q) return;
-    lastQuery = q;
-    addHistory(q);
-    history.replaceState(null, "", `results.html?q=${encodeURIComponent(q)}`);
-    runSearch(q);
+
+  searchButton.addEventListener("click", () => {
+    const query = input.value.trim();
+
+    if (!query) return;
+
+    addHistory(query);
+
+    const newUrl =
+      `recommendations.html?q=${encodeURIComponent(query)}`;
+
+    window.history.pushState({}, "", newUrl);
+
+    runSearch(query);
   });
 
-  document.getElementById("retryBtn").addEventListener("click", () => {
-    runSearch(lastQuery);
+
+  input.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+
+    event.preventDefault();
+
+    const query = input.value.trim();
+
+    if (!query) return;
+
+    addHistory(query);
+
+    const newUrl =
+      `recommendations.html?q=${encodeURIComponent(query)}`;
+
+    window.history.pushState({}, "", newUrl);
+
+    runSearch(query);
   });
+
 });

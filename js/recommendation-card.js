@@ -42,7 +42,11 @@
 (function () {
   "use strict";
 
-  const PRICING_LABEL = { free: "Free", hybrid: "Hybrid", paid: "Paid" };
+  const PRICING_LABEL = {
+  free: "Free",
+  hybrid: "Freemium",
+  paid: "Paid"
+};
   const PRICING_CLASS = { free: "rcard-pricing--free", hybrid: "rcard-pricing--hybrid", paid: "rcard-pricing--paid" };
 
   let uidCounter = 0;
@@ -422,7 +426,7 @@
    */
   function renderRecommendationCards(container, tools) {
     if (!container) return;
-    const list = Array.isArray(tools) ? tools.slice(0, 7) : [];
+    const list = Array.isArray(tools) ? tools.slice(0, 8) : [];
 
     // All cards — the highlighted pick and every alternative — render into
     // ONE grid (.rcard-row) so they're always equal width/height and the
