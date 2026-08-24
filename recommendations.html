@@ -70,6 +70,7 @@
 <script src="js/components.js"></script>
 <script src="js/rating.js"></script>
 <script src="js/recommendation-card.js"></script>
+<script src="js/results.js"></script>
   <script>
     requireAuth();
     renderShell("recommendations");
@@ -135,15 +136,6 @@
       voiceSearchBtn.addEventListener("click", () => {
         alert("Voice search is not supported in this browser. Please use Chrome.");
       });
-    }
-
-    // Initial load from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const initialQuery = urlParams.get('q');
-    if (initialQuery) {
-      activeQueries = [initialQuery];
-      searchInput.value = initialQuery;
-      addHistory(initialQuery);
     }
 
     // Render tags
@@ -258,21 +250,13 @@
     }
 
     // Event Listeners
-    // Pressing Search (or Enter) on this page ADDS the new keyword to the
-    // running conversation instead of replacing it — cards for the new
-    // query get appended below the old ones (like a chat growing with each
-    // new message), and every card is still generated from the *combined*
-    // set of keywords so far. This only resets when the user navigates to
-    // New Chat (a fresh page load with its own empty activeQueries).
     searchBtn.addEventListener('click', () => {
       const val = searchInput.value.trim();
       if (!val) return;
-      const isFirstQuery = activeQueries.length === 0;
-      activeQueries.push(val);
-      history.replaceState(null, "", `recommendations.html?q=${encodeURIComponent(activeQueries.join(" "))}`);
+      activeQueries = [val];
+      history.replaceState(null, "", `recommendations.html?q=${encodeURIComponent(val)}`);
       renderTags();
-      searchInput.value = '';
-      performSearch(!isFirstQuery);
+      performSearch(false);
     });
 
     searchInput.addEventListener('keydown', (e) => {

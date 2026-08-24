@@ -139,7 +139,18 @@
     const emptyState = document.getElementById('emptyState');
     const upArrowBtn = document.getElementById('upArrowBtn');
 
-    // New Chat always starts as an empty, independent workspace (no ?q= prefill).
+
+    // Read search query coming from Home
+const urlParams = new URLSearchParams(window.location.search);
+const initialQuery = urlParams.get("q");
+
+if (initialQuery) {
+  searchInput.value = initialQuery;
+  activeQueries = [initialQuery];
+
+  renderTags();
+  performSearch(false);
+}
 
     // Render tags
     function renderTags() {
@@ -402,18 +413,12 @@ const tools = searchTools(fullQuery, 7);
     }
 
     // Event Listeners
-    // Same as recommendations.html: Search grows the chat (push + append)
-    // instead of resetting it, once this New Chat session already has a
-    // first query. A brand-new New Chat page load still starts empty, and
-    // navigating to New Chat again is the only thing that resets it.
     searchBtn.addEventListener('click', () => {
       const val = searchInput.value.trim();
       if (!val) return;
-      const isFirstQuery = activeQueries.length === 0;
-      activeQueries.push(val);
+      activeQueries = [val];
       renderTags();
-      searchInput.value = '';
-      performSearch(!isFirstQuery);
+      performSearch(false);
     });
 
     searchInput.addEventListener('keydown', (e) => {
@@ -434,10 +439,19 @@ const tools = searchTools(fullQuery, 7);
     });
 
     // Initialize
-    renderTags();
-    if (activeQueries.length > 0) {
-      performSearch(false);
-    }
+renderTags();
+
+// Read query sent from Home
+const params = new URLSearchParams(window.location.search);
+const queryFromHome = params.get("q");
+
+if (queryFromHome) {
+  searchInput.value = queryFromHome;
+  activeQueries = [queryFromHome];
+
+  renderTags();
+  performSearch(false);
+}
   </script>
 </body>
 </html>

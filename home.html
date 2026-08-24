@@ -47,8 +47,18 @@
             </button>
           </div>
 
-          <!-- Active Tags (queued keywords before "Search" is pressed) -->
-          <div id="activeTags" class="flex flex-wrap gap-2 justify-center mt-4"></div>
+          <!-- Active Tags -->
+<div id="activeTags" class="flex flex-wrap gap-2 justify-center mt-4"></div>
+
+<!-- Results -->
+<div id="resultsBlocks" class="max-w-6xl mx-auto mt-10">
+  <div id="emptyState" class="text-center py-20">
+    <i data-lucide="search-x" class="w-10 h-10 text-gray-300 mx-auto"></i>
+    <p class="mt-4 text-muted">
+      Search for a task above to see your matches.
+    </p>
+  </div>
+</div>
 
         </div>
       </main>
@@ -65,9 +75,11 @@
   -->
 
   <script src="js/auth.js"></script>
-  <script src="js/history.js"></script>
-  <script src="js/components.js"></script>
-  <script src="js/search.js"></script>
+<script src="js/history.js"></script>
+<script src="js/components.js"></script>
+<script src="js/search.js"></script>
+<script src="js/rating.js"></script>
+<script src="js/recommendation-card.js"></script>
   <script>
     requireAuth();
     renderShell("home");
@@ -133,15 +145,121 @@
       });
     }
 
-    // If we landed here with ?q= (an old link/bookmark, sidebar recent
-    // search, dashboard history item, etc.) hand straight off to the
-    // results page instead of showing anything on Home.
-    const urlParams = new URLSearchParams(window.location.search);
-    const initialQuery = urlParams.get('q');
-    if (initialQuery) {
-      window.location.replace(`recommendations.html?q=${encodeURIComponent(initialQuery)}`);
+function mapDbToolToCard(row, query) {
+  const pricingRaw = (row.pricing || "hybrid").toLowerCase();
+
+  const pricing = ["free", "hybrid", "paid"].includes(pricingRaw)
+    ? pricingRaw
+    : "hybrid";
+
+  return {
+    id: row.id,
+    name: row.tool_name,
+    category: row.category || "AI Tool",
+    pricing: pricing,
+    description: `Great for "${query}". ${row.description || ""}`,
+    pros: Array.isArray(row.best_use_cases)
+      ? row.best_use_cases.slice(0, 2)
+      : [],
+    cons: [],
+    rating: 0,
+    url: row.official_website || "#",
+    credits: row.pricing === "free"
+      ? "Free tier available"
+      : undefined
+  };
+}
+
+async function performSearch() {
+  if (activeQueries.length === 0) return;
+
+  const fullQuery = activeQueries.join(" ").trim();
+
+  addHistory(fullQuery);
+
+  const resultsBlocks = document.getElementById("resultsBlocks");
+  const emptyState = document.getElementById("emptyState");
+
+  emptyState.classList.add("hidden");
+
+  resultsBlocks.innerHTML = `
+    <div class="text-center py-16 text-muted">
+      Searching AI tools...
+    </div>
+  `;
+
+  try {
+    const response = await fetch(
+      `${API_BASE}/search?q=${encodeURIComponent(fullQuery)}`
+    );
+
+    if (!response.ok) {
+      throw new Error(`Search failed: ${response.status}`);
     }
 
+    const data = await response.json();
+
+    console.log("SEARCH RESPONSE:", data);
+
+    if (!data.success) {
+      throw new Error(data.message || "Search failed");
+    }
+
+    const rows = Array.isArray(data.data)
+      ? data.data
+      : [];
+
+    if (rows.length === 0) {
+      resultsBlocks.innerHTML = `
+        <div class="text-center py-16">
+          <i data-lucide="search-x"
+             class="w-10 h-10 text-gray-300 mx-auto"></i>
+
+          <p class="mt-4 text-muted">
+            No AI tools matched "${fullQuery}".
+          </p>
+        </div>
+      `;
+
+      if (window.lucide) lucide.createIcons();
+
+      return;
+    }
+
+    const toolsForCards = rows
+      .slice(0, 7)
+      .map(row => mapDbToolToCard(row, fullQuery));
+
+    resultsBlocks.innerHTML = "";
+
+    const block = document.createElement("div");
+    block.className = "results-block mt-8 page-enter";
+
+    resultsBlocks.appendChild(block);
+
+    renderRecommendationCards(
+      block,
+      toolsForCards
+    );
+
+    if (window.lucide) lucide.createIcons();
+
+  } catch (error) {
+    console.error("HOME SEARCH ERROR:", error);
+
+    resultsBlocks.innerHTML = `
+      <div class="text-center py-16">
+        <p class="text-red-500 font-semibold">
+          Couldn't reach the server.
+        </p>
+
+        <p class="text-sm text-muted mt-2">
+          Please make sure the backend is running on port 5000.
+        </p>
+      </div>
+    `;
+  }
+}
     function renderTags() {
       activeTags.innerHTML = activeQueries.map((q, i) => `
         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-light text-green-dark text-xs font-semibold">
@@ -160,21 +278,19 @@
       });
     }
 
-    function goToRecommendations() {
-      if (!activeQueries.length) return;
-      const fullQuery = activeQueries.join(" ");
-      addHistory(fullQuery);
-      window.location.href = `recommendations.html?q=${encodeURIComponent(fullQuery)}`;
-    }
-
-    // Event Listeners
     searchBtn.addEventListener('click', () => {
-      const val = searchInput.value.trim();
-      if (!val) return;
-      activeQueries = activeQueries.length ? [...activeQueries, val] : [val];
-      goToRecommendations();
-    });
+  const val = searchInput.value.trim();
 
+  if (!val) return;
+
+  activeQueries = activeQueries.length
+    ? [...activeQueries, val]
+    : [val];
+
+  renderTags();
+
+  performSearch();
+});
     searchInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') searchBtn.click();
     });

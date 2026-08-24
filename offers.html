@@ -46,8 +46,6 @@
     requireAuth();
     renderShell("offers");
 
-    const API_BASE = "http://localhost:5000/api";
-
     async function loadOffers() {
       const grid = document.getElementById("offersGrid");
       grid.innerHTML = `<p class="col-span-full text-center text-muted py-16">Loading offers…</p>`;

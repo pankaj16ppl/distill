@@ -74,7 +74,7 @@ function renderShell(active) {
           <span class="w-9 h-9 rounded-xl bg-green flex items-center justify-center"><i data-lucide="sparkles" class="w-5 h-5 text-white"></i></span>
           <span class="text-lg font-bold tracking-tight">Distill</span>
         </a>
-        <nav class="flex-1 flex flex-col gap-1">${navLinksMarkup(active)}</nav>
+        <nav class="flex-1 flex flex-col gap-1 overflow-y-auto">${navLinksMarkup(active)}</nav>
         ${userCardMarkup(user, "sidebarLogout")}
       </aside>
 
@@ -87,7 +87,7 @@ function renderShell(active) {
           </a>
           <button id="drawerClose" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-cream"><i data-lucide="x" class="w-4 h-4"></i></button>
         </div>
-        <nav class="flex-1 flex flex-col gap-1">${navLinksMarkup(active)}</nav>
+        <nav class="flex-1 flex flex-col gap-1 overflow-y-auto">${navLinksMarkup(active)}</nav>
         ${userCardMarkup(user, "sidebarLogoutMobile")}
       </aside>`;
   }
