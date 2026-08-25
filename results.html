@@ -3,14 +3,21 @@
 <head>
 <meta charset="UTF-8" />
 <meta http-equiv="refresh" content="0; url=home.html" />
+
 <title>Redirecting… · Distill</title>
+
 <script>
-  // Same-page results now live on home.html — bounce straight there with
-  // the query preserved, before anything paints (no second search bar flash).
-  var params = new URLSearchParams(window.location.search);
-  var q = params.get("q");
-  window.location.replace(q ? ("home.html?q=" + encodeURIComponent(q)) : "home.html");
+  // Redirect everything to New Chat while preserving the search query.
+var params = new URLSearchParams(window.location.search);
+var q = params.get("q");
+
+window.location.replace(
+  q
+    ? ("home.html?q=" + encodeURIComponent(q))
+    : "home.html"
+);
 </script>
+
 </head>
 <body></body>
 </html>

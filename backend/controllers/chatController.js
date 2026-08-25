@@ -2,10 +2,22 @@ const chatModel = require("../models/chatmodel");
 
 const createChat = async (req, res) => {
     try {
-        const { user_id, title } = req.body;
+        const { title } = req.body;
+
+        const userId =
+            req.user?.id ||
+            req.user?.user_id ||
+            req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({
+                success: false,
+                message: "User not authenticated"
+            });
+        }
 
         const chat = await chatModel.createChat(
-            user_id,
+            userId,
             title || "New Chat"
         );
 
@@ -98,7 +110,7 @@ const sendChatMessage = async (req, res) => {
 
         // Call Phase 8 Recommendation API
         const response = await fetch(
-            "http://localhost:5000/api/recommendation",
+    "http://localhost:5000/api/recommendation",
             {
                 method: "POST",
                 headers: {
@@ -117,18 +129,19 @@ const sendChatMessage = async (req, res) => {
 
         const data = await response.json();
 
-        // Save Gemini recommendation
-        await chatModel.createMessage(
-            chat_id,
-            "assistant",
-            data.recommendation
-        );
+                 // Save Gemini recommendations
+await chatModel.createMessage(
+    chat_id,
+    "assistant",
+    JSON.stringify(data.recommendations || [])
+);
 
         res.status(200).json({
-            success: true,
-            chat_id,
-            recommendation: data.recommendation
-        });
+    success: true,
+    chat_id,
+    recommendations: data.recommendations || [],
+    tools: data.tools || []
+});
 
     } catch (error) {
         console.error("Chat Message Error:", error);

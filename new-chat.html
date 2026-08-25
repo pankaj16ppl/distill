@@ -64,7 +64,7 @@
     <div class="rec-card flip-card bg-white rounded-card border border-line p-6 relative overflow-hidden" data-tool-id="">
       <div class="flip-card-inner">
         <!-- Front -->
-        <div class="flip-card-front flex flex-col">
+        <div class="flip-card-front flex flex-col relative"></div>
           <div class="flex items-start justify-between gap-3">
             <div>
               <h3 class="font-bold text-lg leading-tight tool-name"></h3>
@@ -90,7 +90,7 @@
               <ul class="tool-cons space-y-1 text-muted"></ul>
             </div>
           </div>
-          <div class="mt-4 pt-3 border-t border-line flex items-center justify-between">
+          <div class="absolute bottom-4 left-6 right-6 pt-3 border-t border-line flex items-center justify-between bg-white"></div>
             <span class="flex items-center gap-1 text-xs text-gray-400">
               <i data-lucide="star" class="w-3.5 h-3.5 fill-current"></i>
               <span class="tool-rating"></span> Distill Rating
@@ -125,6 +125,7 @@
   <script>
     requireAuth();
     renderShell("newchat");
+
 
     // State
     let activeQueries = [];
@@ -184,38 +185,111 @@ if (initialQuery) {
 
     // Fill card function
     function fillCard(node, tool, query, isBest) {
-      node.dataset.toolId = tool.id;
-      node.querySelector('.tool-name').textContent = tool.name;
-      node.querySelector('.tool-category').textContent = tool.category;
-      node.querySelector('.tool-description').textContent = getDynamicDescription(tool, query);
-      node.querySelector('.tool-rating').textContent = tool.rating.toFixed(1);
-      node.querySelector('.tool-link').href = tool.url;
-      node.querySelector('.tool-credits').textContent = tool.credits || "Not specified";
+      const PRICING_LABEL = {
+  Free: "Free",
+  Freemium: "Freemium",
+  Paid: "Paid"
+};
 
-      // Pricing
-      const badge = node.querySelector('.pricing-badge');
-      badge.textContent = PRICING_LABEL[tool.pricing];
-      badge.className = `pricing-badge shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full ${PRICING_CLASS[tool.pricing]}`;
+const PRICING_CLASS = {
+  Free: "bg-green-light text-green-dark",
+  Freemium: "bg-amber-100 text-amber-800",
+  Paid: "bg-red-100 text-red-800"
+};
 
-      // Pros/Cons
-      const prosList = node.querySelector('.tool-pros');
-      prosList.innerHTML = tool.pros.slice(0, isBest ? 3 : 2).map(p => `<li class="flex gap-1"><span>·</span><span>${p}</span></li>`).join('');
-      const consList = node.querySelector('.tool-cons');
-      consList.innerHTML = tool.cons.slice(0, isBest ? 3 : 2).map(c => `<li class="flex gap-1"><span>·</span><span>${c}</span></li>`).join('');
+  // Get the actual card element from the template
+  const card = node.classList && node.classList.contains('rec-card')
+    ? node
+    : node.querySelector('.rec-card');
 
-      // Update Ratings
-      updateCardRatings(node, tool.id);
-      
-      // Attach flip listener
-      attachFlipListener(node);
-    }
+  if (!card) {
+    console.error("Card element not found");
+    return;
+  }
 
+  card.dataset.toolId = tool.id;
+
+  card.querySelector('.tool-name').textContent =
+    tool.name || "Unknown Tool";
+
+  card.querySelector('.tool-category').textContent =
+    tool.category || "AI Tool";
+
+  card.querySelector('.tool-description').textContent =
+    getDynamicDescription(tool, query);
+
+  card.querySelector('.tool-rating').textContent =
+    Number(tool.rating || 0).toFixed(1);
+
+  card.querySelector('.tool-link').href =
+    tool.url || "#";
+
+  card.querySelector('.tool-credits').textContent =
+    tool.credits || "Not specified";
+
+  // Pricing
+  const badge = card.querySelector('.pricing-badge');
+
+  if (badge) {
+    badge.textContent =
+      PRICING_LABEL[tool.pricing] || tool.pricing || "Unknown";
+
+    badge.className =
+      `pricing-badge shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+        PRICING_CLASS[tool.pricing] || ""
+      }`;
+  }
+
+  // Pros
+  const prosList = card.querySelector('.tool-pros');
+
+  const pros = Array.isArray(tool.pros)
+    ? tool.pros
+    : [];
+
+  prosList.innerHTML = pros
+    .slice(0, isBest ? 3 : 2)
+    .map(p => `
+      <li class="flex gap-1">
+        <span>·</span>
+        <span>${p}</span>
+      </li>
+    `)
+    .join('');
+
+  // Cons
+  const consList = card.querySelector('.tool-cons');
+
+  const cons = Array.isArray(tool.cons)
+    ? tool.cons
+    : [];
+
+  consList.innerHTML = cons
+    .slice(0, isBest ? 3 : 2)
+    .map(c => `
+      <li class="flex gap-1">
+        <span>·</span>
+        <span>${c}</span>
+      </li>
+    `)
+    .join('');
+
+  // Ratings
+  updateCardRatings(card, tool.id);
+
+  // Flip listener
+  attachFlipListener(card);
+}
     function updateCardRatings(card, toolId) {
-      const avg = getAvgRating(toolId);
-      const count = getRatingCount(toolId);
-      card.querySelector('.tool-avg-rating').textContent = avg ? avg.toFixed(1) : "N/A";
-      card.querySelector('.tool-rating-count').textContent = count;
-    }
+  const avg = Number(getAvgRating(toolId));
+  const count = Number(getRatingCount(toolId));
+
+  card.querySelector('.tool-avg-rating').textContent =
+    avg > 0 ? avg.toFixed(1) : "N/A";
+
+  card.querySelector('.tool-rating-count').textContent =
+    count || 0;
+}
 
     function attachFlipListener(card) {
       let timer = null;
@@ -252,58 +326,100 @@ if (initialQuery) {
         updateCardRatings(card, card.dataset.toolId);
       });
     }
-    // Phase 9 — Connect New Chat to backend
-async function createNewChat(query) {
+    //newchat
+    async function createNewChat(query) {
   try {
-    const token = localStorage.getItem("distill_token"); // fixed: was "token", auth.js actually stores it as "distill_token"
+    const token = localStorage.getItem("distill_token");
 
-    const response = await fetch("http://localhost:5000/api/chats", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { "Authorization": `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify({
-        profession: "Student",
-        task: query
-      })
-    });
+    // STEP 1: Create the chat
+    const createResponse = await fetch(
+      "http://localhost:5000/api/chats",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token
+            ? { "Authorization": `Bearer ${token}` }
+            : {})
+        },
+        body: JSON.stringify({
+          title: query
+        })
+      }
+    );
 
-    const data = await response.json();
+    const createData = await createResponse.json();
 
-    if (!response.ok) {
-      throw new Error(data.message || "Failed to create chat");
+    if (!createResponse.ok) {
+      throw new Error(
+        createData.message || "Failed to create chat"
+      );
     }
 
-    console.log("New Chat Response:", data);
+    console.log("✅ Chat created:", createData);
 
-    // Save chat ID for this conversation
-    if (data.chat_id) {
-      localStorage.setItem("currentChatId", data.chat_id);
+    const chatId = createData.chat_id;
+
+    if (!chatId) {
+      throw new Error("Chat ID was not returned");
     }
 
-    // Display Gemini recommendation
-    if (data.recommendation) {
-      displayGeminiRecommendation(data.recommendation);
+    localStorage.setItem("currentChatId", chatId);
+
+    // STEP 2: Send the user's message
+    const messageResponse = await fetch(
+      "http://localhost:5000/api/chats/message",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token
+            ? { "Authorization": `Bearer ${token}` }
+            : {})
+        },
+        body: JSON.stringify({
+          chat_id: chatId,
+          profession: "Student",
+          message: query
+        })
+      }
+    );
+
+    const messageData = await messageResponse.json();
+
+    if (!messageResponse.ok) {
+      throw new Error(
+        messageData.message ||
+        "Failed to process chat message"
+      );
     }
 
-    return data;
+    console.log("✅ Recommendation response:", messageData);
+            if (messageData.recommendations?.length) {
+  displayGeminiRecommendation(
+    messageData.recommendations
+  );
+}
+
+    return messageData;
 
   } catch (error) {
-    console.error("New Chat Error:", error);
+    console.error("❌ New Chat Error:", error);
 
     const errorBox = document.createElement("div");
+
     errorBox.className =
       "mt-6 p-4 rounded-card bg-red-50 border border-red-200 text-red-600 text-sm";
 
     errorBox.textContent =
-      "Unable to get AI recommendation. Please try again.";
+      "Unable to create chat or get AI recommendation. Please try again.";
 
     resultsBlocks.prepend(errorBox);
 
     return null;
   }
-}   // Display Gemini recommendation
+}
+   // Display Gemini recommendation
 function displayGeminiRecommendation(recommendation) {
   const recommendationBox = document.createElement("div");
 
@@ -340,7 +456,7 @@ function displayGeminiRecommendation(recommendation) {
   }
 }
     // Main Search Function
-    function performSearch(append = false) {
+    async function performSearch(append = false) {
       if (activeQueries.length === 0) {
         resultsBlocks.innerHTML = '';
         emptyState.classList.remove('hidden');
@@ -351,10 +467,11 @@ function displayGeminiRecommendation(recommendation) {
 
 const fullQuery = activeQueries.join(" ");
 
-// Phase 9 — Send query to backend
-createNewChat(fullQuery);
+// Phase 9 — Create chat and get AI recommendations
+const chatData = await createNewChat(fullQuery);
 
-const tools = searchTools(fullQuery, 7);
+let tools = chatData?.tools || [];
+
 
       if (!tools.length) {
         if (!append) resultsBlocks.innerHTML = '';
@@ -381,7 +498,7 @@ const tools = searchTools(fullQuery, 7);
       badge.className = 'absolute -top-3 left-6 z-10 inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1 rounded-full bg-amber-400 text-amber-950 shadow-card';
       badge.innerHTML = '<i data-lucide="crown" class="w-3 h-3"></i> Most Recommended';
       bestSlot.appendChild(badge);
-      fillCard(bestNode, best, fullQuery, true);
+    fillCard(bestNode, best, fullQuery, true);
       bestSlot.appendChild(bestNode);
       block.appendChild(bestSlot);
 
@@ -389,11 +506,17 @@ const tools = searchTools(fullQuery, 7);
       const altSlot = document.createElement('div');
       altSlot.className = 'grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6';
       alts.forEach(tool => {
-        const node = document.getElementById('recCardTemplate').content.cloneNode(true);
-        node.querySelector('.rec-card').classList.add('rec-alt');
-        fillCard(node, tool, fullQuery, false);
-        altSlot.appendChild(node);
-      });
+  const node =
+    document.getElementById('recCardTemplate').content.cloneNode(true);
+
+  const cardEl = node.querySelector('.rec-card');
+
+  cardEl.classList.add('rec-alt');
+
+  fillCard(cardEl, tool, fullQuery, false);
+
+  altSlot.appendChild(node);
+});
       block.appendChild(altSlot);
 
       if (window.lucide) lucide.createIcons();

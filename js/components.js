@@ -4,27 +4,33 @@
 
 function escapeHtml(str) {
   return String(str ?? "").replace(/[&<>"']/g, (c) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
   }[c]));
 }
 
 const NAV_ITEMS = [
-  { id: "home", href: "home.html", icon: "home", label: "Home" },
-  { id: "newchat", href: "new-chat.html", icon: "message-square-plus", label: "New Chat" },
+  { id: "newchat", href: "home.html", icon: "message-square-plus", label: "New Chat" },
   { id: "dashboard", href: "dashboard.html", icon: "layout-dashboard", label: "Dashboard" },
-  { id: "history", href: "history.html", icon: "history", label: "History" },
   { id: "offers", href: "offers.html", icon: "tag", label: "Offers" },
   { id: "trendy", href: "trendy.html", icon: "flame", label: "Trending" },
 ];
 
 const PAGE_TITLES = {
-  home: "Home", newchat: "New Chat", dashboard: "Dashboard",
-  history: "History", offers: "Offers", trendy: "Trending", profile: "Profile",
+  home: "New Chat",
+  newchat: "New Chat",
+  dashboard: "Dashboard",
+  history: "History",
+  offers: "Offers",
+  trendy: "Trending",
+  profile: "Profile",
 };
-
 function historyPreviewMarkup() {
   const items = getHistory().slice(0, 5);
-  if (!items.length) return `<p class="px-4 py-3 text-sm text-muted">No searches yet.</p>`;
+  if (!items.length) return `<p class="text-xs text-muted truncate">`;
   return items.map((h) => `
     <button class="history-run w-full flex items-center gap-3 px-4 py-2.5 text-left rounded-xl nav-link hover:bg-green-light/60"
       data-query="${escapeHtml(h.query)}">
@@ -32,6 +38,28 @@ function historyPreviewMarkup() {
       <span class="flex-1 text-sm text-gray-500 truncate">${escapeHtml(h.query)}</span>
       <span class="text-xs text-gray-400 shrink-0">${relativeTime(h.time)}</span>
     </button>`).join("");
+}
+function historyAllMarkup() {
+  const items = getHistory();
+
+  if (!items.length) {
+    return `<p class="px-4 py-3 text-sm text-muted">No searches yet.</p>`;
+  }
+
+  return items.map((h) => `
+    <button
+      class="history-run w-full flex items-center gap-3 px-4 py-2.5 text-left rounded-xl nav-link hover:bg-green-light/60"
+      data-query="${escapeHtml(h.query)}"
+    >
+      <i data-lucide="clock" class="w-4 h-4 text-gray-400 shrink-0"></i>
+      <span class="flex-1 text-sm text-gray-500 truncate">
+        ${escapeHtml(h.query)}
+      </span>
+      <span class="text-xs text-gray-400 shrink-0">
+        ${relativeTime(h.time)}
+      </span>
+    </button>
+  `).join("");
 }
 
 function navLinksMarkup(active) {
@@ -54,7 +82,7 @@ function userCardMarkup(user, logoutId) {
       <a href="profile.html" class="w-9 h-9 rounded-full bg-green-light text-green-dark font-bold flex items-center justify-center text-sm shrink-0">${initial}</a>
       <div class="min-w-0 flex-1">
         <p class="text-sm font-semibold truncate">${escapeHtml(user?.name || "")}</p>
-        <p class="text-xs text-muted truncate">${escapeHtml(user?.email || "")}</p>
+        <p class="tconst NAV_ITEMS = ext-xs text-muted truncate">${escapeHtml(user?.email || "")}</p>
       </div>
       <button id="${logoutId}" title="Log out" class="btn-scale w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-red-500 hover:bg-red-50 shrink-0">
         <i data-lucide="log-out" class="w-4 h-4"></i>
@@ -74,8 +102,33 @@ function renderShell(active) {
           <span class="w-9 h-9 rounded-xl bg-green flex items-center justify-center"><i data-lucide="sparkles" class="w-5 h-5 text-white"></i></span>
           <span class="text-lg font-bold tracking-tight">Distill</span>
         </a>
-        <nav class="flex-1 flex flex-col gap-1 overflow-y-auto">${navLinksMarkup(active)}</nav>
-        ${userCardMarkup(user, "sidebarLogout")}
+        <nav class="flex-1 flex flex-col gap-1 overflow-y-auto">
+  ${navLinksMarkup(active)}
+
+  <div class="mt-5 pt-4 border-t border-line">
+    <div class="flex items-center justify-between px-3 mb-2">
+      <span class="text-xs font-semibold text-muted uppercase tracking-wide">
+        History
+      </span>
+      <i data-lucide="history" class="w-3.5 h-3.5 text-gray-400"></i>
+    </div>
+
+    <div
+  id="sidebarHistory"
+  class="max-h-64 overflow-y-auto pr-1"
+>
+  ${historyPreviewMarkup()}
+</div>
+
+<button
+  id="showMoreHistory"
+  class="w-full mt-2 px-3 py-2 text-xs font-semibold text-green-dark hover:bg-green-light rounded-btn text-left"
+>
+  Show more →
+</button>
+  </div>
+</nav>
+${userCardMarkup(user, "sidebarLogout")}
       </aside>
 
       <div id="drawerOverlay" class="lg:hidden fixed inset-0 bg-black/30 z-30 opacity-0 pointer-events-none"></div>
@@ -118,7 +171,28 @@ function renderShell(active) {
   document.getElementById("drawerToggle")?.addEventListener("click", openDrawer);
   document.getElementById("drawerClose")?.addEventListener("click", closeDrawer);
   overlay?.addEventListener("click", closeDrawer);
+         // Show more / show less history
+const showMoreHistory = document.getElementById("showMoreHistory");
+const sidebarHistory = document.getElementById("sidebarHistory");
 
+showMoreHistory?.addEventListener("click", () => {
+  const expanded = showMoreHistory.dataset.expanded === "true";
+
+  if (!expanded) {
+    sidebarHistory.innerHTML = historyAllMarkup();
+    sidebarHistory.classList.add("max-h-64", "overflow-y-auto");
+
+    showMoreHistory.textContent = "Show less ↑";
+    showMoreHistory.dataset.expanded = "true";
+  } else {
+    sidebarHistory.innerHTML = historyPreviewMarkup();
+
+    showMoreHistory.textContent = "Show more →";
+    showMoreHistory.dataset.expanded = "false";
+  }
+
+  if (window.lucide) lucide.createIcons();
+});
   // Recent-searches dropdown
   const recentBtn = document.getElementById("recentBtn");
   const recentDropdown = document.getElementById("recentDropdown");
@@ -141,7 +215,7 @@ function renderShell(active) {
   // Logout (desktop + mobile sidebar)
   document.getElementById("sidebarLogout")?.addEventListener("click", logoutUser);
   document.getElementById("sidebarLogoutMobile")?.addEventListener("click", logoutUser);
-
+   
   if (window.lucide) lucide.createIcons();
 }
 
