@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -8,6 +8,13 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="js/tailwind-config.js"></script>
 <link rel="stylesheet" href="css/styles.css" />
+
+<style>
+  #addQueryBtn {
+    display: none !important;
+  }
+</style>
+
 <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body class="bg-cream text-ink antialiased">
@@ -31,9 +38,7 @@
                 class="flex-1 min-w-0 bg-transparent outline-none text-sm placeholder:text-gray-400" />
               <button id="homeSearchBtn" class="btn-scale shrink-0 px-5 py-2 rounded-btn bg-green text-white text-sm font-semibold hover:bg-green-dark">Search</button>
             </div>
-            <button id="addQueryBtn" class="btn-scale shrink-0 w-11 h-11 rounded-full bg-green-light text-green-dark flex items-center justify-center hover:bg-green hover:text-white transition-colors" title="Add additional keywords">
-              <i data-lucide="plus" class="w-5 h-5"></i>
-            </button>
+      
           </div>
 
           <!-- Active Tags -->
@@ -62,7 +67,7 @@
   <!-- Card Template -->
   <template id="recCardTemplate">
     <div class="rec-card flip-card bg-white rounded-card border border-line p-6 relative overflow-hidden" data-tool-id="">
-      <div class="flip-card-inner">
+      <div class=<!DOCTYPE html>"flip-card-inner">
         <!-- Front -->
         <div class="flip-card-front flex flex-col relative"></div>
           <div class="flex items-start justify-between gap-3">
@@ -120,6 +125,15 @@
   <script src="js/history.js"></script>
   <script src="js/data.js"></script>
   <script src="js/components.js"></script>
+  <script>
+document.addEventListener("DOMContentLoaded", function () {
+  const plus = document.getElementById("addQueryBtn");
+  if (plus) {
+    plus.remove();
+  }
+});
+
+</script>
   <script src="js/search.js"></script>
   <script src="js/rating.js"></script>
   <script>
@@ -134,24 +148,11 @@
     // DOM refs
     const searchInput = document.getElementById('homeSearchInput');
     const searchBtn = document.getElementById('homeSearchBtn');
-    const addBtn = document.getElementById('addQueryBtn');
     const activeTags = document.getElementById('activeTags');
     const resultsBlocks = document.getElementById('resultsBlocks');
     const emptyState = document.getElementById('emptyState');
     const upArrowBtn = document.getElementById('upArrowBtn');
 
-
-    // Read search query coming from Home
-const urlParams = new URLSearchParams(window.location.search);
-const initialQuery = urlParams.get("q");
-
-if (initialQuery) {
-  searchInput.value = initialQuery;
-  activeQueries = [initialQuery];
-
-  renderTags();
-  performSearch(false);
-}
 
     // Render tags
     function renderTags() {
@@ -291,6 +292,226 @@ const PRICING_CLASS = {
     count || 0;
 }
 
+       // Render tools block
+function renderToolsBlock(tools, fullQuery, append = false) {
+
+  if (!tools || !tools.length) {
+    if (!append) {
+      resultsBlocks.innerHTML = '';
+      emptyState.classList.remove('hidden');
+    }
+    return;
+  }
+
+  emptyState.classList.add('hidden');
+
+  const block = document.createElement('div');
+  block.className = 'results-block mt-8';
+
+  const [best, ...alts] = tools;
+
+  // Best Card
+  const bestSlot = document.createElement('div');
+  bestSlot.id = `best-${Date.now()}`;
+  bestSlot.className = 'relative max-w-xl mx-auto';
+
+  const bestNode =
+    document.getElementById('recCardTemplate')
+      .content.cloneNode(true);
+
+  const bestCardEl = bestNode.querySelector('.rec-card');
+
+  bestCardEl.classList.add(
+    'ring-2',
+    'ring-amber-400',
+    'shadow-xl',
+    'scale-[1.05]',
+    'page-enter'
+  );
+
+  const bestTitle = bestNode.querySelector('.tool-name');
+
+  if (bestTitle) {
+    bestTitle.classList.add('text-2xl');
+  }
+
+  const bestLink = bestNode.querySelector('.tool-link');
+
+  if (bestLink) {
+    bestLink.classList.add(
+      'text-sm',
+      'px-3',
+      'py-1.5',
+      'bg-green',
+      'text-white',
+      'rounded-btn',
+      'hover:bg-green-dark',
+      'no-underline'
+    );
+  }
+
+  const badge = document.createElement('span');
+
+  badge.className =
+    'absolute -top-3 left-6 z-10 inline-flex items-center gap-1 text-[11px] font-bold px-3 py-1 rounded-full bg-amber-400 text-amber-950 shadow-card';
+
+  badge.innerHTML =
+    '<i data-lucide="crown" class="w-3 h-3"></i> Most Recommended';
+
+  bestSlot.appendChild(badge);
+
+  fillCard(bestNode, best, fullQuery, true);
+
+  bestSlot.appendChild(bestNode);
+  block.appendChild(bestSlot);
+
+  // Alternatives
+  const altSlot = document.createElement('div');
+
+  altSlot.className =
+    'grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-6';
+
+  alts.forEach(tool => {
+
+    const node =
+      document.getElementById('recCardTemplate')
+        .content.cloneNode(true);
+
+    const cardEl = node.querySelector('.rec-card');
+
+    cardEl.classList.add('rec-alt');
+
+    fillCard(
+      cardEl,
+      tool,
+      fullQuery,
+      false
+    );
+
+    altSlot.appendChild(node);
+  });
+
+  block.appendChild(altSlot);
+
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+
+  if (append) {
+
+    resultsBlocks.appendChild(block);
+
+    block.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+
+  } else {
+
+    resultsBlocks.innerHTML = '';
+    resultsBlocks.appendChild(block);
+
+  }
+
+  upArrowBtn.style.opacity =
+    resultsBlocks.children.length > 1
+      ? '1'
+      : '0';
+
+  upArrowBtn.style.pointerEvents =
+    resultsBlocks.children.length > 1
+      ? 'auto'
+      : 'none';
+}
+
+
+// Restore an old search from History
+function restoreHistoryChat(historyId) {
+
+  const history = getHistory();
+
+  const oldChat = history.find(
+    item => item.id === historyId
+  );
+
+  if (!oldChat) {
+
+    console.error(
+      "History item not found:",
+      historyId
+    );
+
+    resultsBlocks.innerHTML = `
+      <div class="text-center py-20">
+        <i data-lucide="history"
+           class="w-10 h-10 text-gray-300 mx-auto"></i>
+
+        <p class="mt-4 text-muted">
+          This old search could not be found.
+        </p>
+      </div>
+    `;
+
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+
+    return;
+  }
+
+  console.log(
+    "✅ Restoring old history:",
+    oldChat
+  );
+
+  // Put old query back into search box
+  searchInput.value = oldChat.query;
+
+  // Restore tag
+  activeQueries = [oldChat.query];
+
+  renderTags();
+
+  // Hide empty state
+  emptyState.classList.add('hidden');
+
+  // Get old saved results
+  const tools = Array.isArray(oldChat.results)
+    ? oldChat.results
+    : [];
+
+  if (!tools.length) {
+
+    resultsBlocks.innerHTML = `
+      <div class="text-center py-20">
+        <i data-lucide="history"
+           class="w-10 h-10 text-gray-300 mx-auto"></i>
+
+        <p class="mt-4 text-muted">
+          This search has no saved results.
+        </p>
+      </div>
+    `;
+
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+
+    return;
+  }
+
+  console.log(
+    "✅ Old tools:",
+    tools
+  );
+
+  // Display saved results
+  renderToolsBlock(
+    tools,
+    oldChat.query,
+    false
+  );
+}
     function attachFlipListener(card) {
       let timer = null;
       const startFlip = () => {
@@ -455,14 +676,15 @@ function displayGeminiRecommendation(recommendation) {
     lucide.createIcons();
   }
 }
-    // Main Search Function
-    async function performSearch(append = false) {
-      if (activeQueries.length === 0) {
-        resultsBlocks.innerHTML = '';
-        emptyState.classList.remove('hidden');
-        return;
-      }
+  
+// Main Search Function
+async function performSearch(append = false) {
 
+  if (activeQueries.length === 0) {
+    resultsBlocks.innerHTML = '';
+    emptyState.classList.remove('hidden');
+    return;
+  }
       emptyState.classList.add('hidden');
 
 const fullQuery = activeQueries.join(" ");
@@ -472,8 +694,12 @@ const chatData = await createNewChat(fullQuery);
 
 let tools = chatData?.tools || [];
 
+// Save the search WITH its results
+if (tools.length) {
+  addHistory(fullQuery, tools);
+}
 
-      if (!tools.length) {
+if (!tools.length) {
         if (!append) resultsBlocks.innerHTML = '';
         return;
       }
@@ -548,15 +774,6 @@ let tools = chatData?.tools || [];
       if (e.key === 'Enter') searchBtn.click();
     });
 
-    addBtn.addEventListener('click', () => {
-      const val = searchInput.value.trim();
-      if (!val) return;
-      activeQueries.push(val);
-      renderTags();
-      searchInput.value = '';
-      performSearch(true);
-    });
-
     upArrowBtn.addEventListener('click', () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     });
@@ -564,16 +781,37 @@ let tools = chatData?.tools || [];
     // Initialize
 renderTags();
 
-// Read query sent from Home
-const params = new URLSearchParams(window.location.search);
+// Read URL parameters
+const params = new URLSearchParams(
+  window.location.search
+);
+
+const historyId = params.get("historyId");
 const queryFromHome = params.get("q");
 
-if (queryFromHome) {
+// Restore an old search from History
+if (historyId) {
+
+  console.log("📜 Loading history:", historyId);
+
+  restoreHistoryChat(historyId);
+
+}
+
+// Normal search coming from Home
+else if (queryFromHome) {
+
+  console.log("🔎 Loading query from Home:", queryFromHome);
+
   searchInput.value = queryFromHome;
+
   activeQueries = [queryFromHome];
 
   renderTags();
+
   performSearch(false);
+  document.getElementById("addQueryBtn")?.remove();
+
 }
   </script>
 </body>

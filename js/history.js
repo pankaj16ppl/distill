@@ -12,7 +12,7 @@ function getHistory() {
 }
 
 // Add a new search to history
-function addHistory(query) {
+function addHistory(query, results = []) {
   if (!query || !query.trim()) return;
 
   const cleanQuery = query.trim();
@@ -24,10 +24,13 @@ function addHistory(query) {
   );
 
   // Put newest search at the top
-  filtered.unshift({
-    query: cleanQuery,
-    time: Date.now()
-  });
+  const historyItem = {
+  id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+  query: cleanQuery,
+  time: Date.now(),
+  results: results
+};
+filtered.unshift(historyItem);
 
   // Keep maximum 50
   localStorage.setItem(
@@ -96,7 +99,7 @@ function draw() {
   list.innerHTML = visibleItems
     .map((h) => `
       <a
-        href="home.html?q=${encodeURIComponent(h.query)}"
+        href="new-chat.html?historyId=${encodeURIComponent(h.id)}"
         class="nav-link flex items-center gap-3 px-5 py-2.5 hover:bg-green-light/50"
       >
 

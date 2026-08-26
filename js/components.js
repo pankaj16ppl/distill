@@ -33,7 +33,9 @@ function historyPreviewMarkup() {
   if (!items.length) return `<p class="text-xs text-muted truncate">`;
   return items.map((h) => `
     <button class="history-run w-full flex items-center gap-3 px-4 py-2.5 text-left rounded-xl nav-link hover:bg-green-light/60"
-      data-query="${escapeHtml(h.query)}">
+      data-history-id="${h.id}"
+data-query="${escapeHtml(h.query)}"
+    >
       <i data-lucide="clock" class="w-4 h-4 text-gray-400 shrink-0"></i>
       <span class="flex-1 text-sm text-gray-500 truncate">${escapeHtml(h.query)}</span>
       <span class="text-xs text-gray-400 shrink-0">${relativeTime(h.time)}</span>
@@ -47,19 +49,16 @@ function historyAllMarkup() {
   }
 
   return items.map((h) => `
-    <button
-      class="history-run w-full flex items-center gap-3 px-4 py-2.5 text-left rounded-xl nav-link hover:bg-green-light/60"
-      data-query="${escapeHtml(h.query)}"
-    >
-      <i data-lucide="clock" class="w-4 h-4 text-gray-400 shrink-0"></i>
-      <span class="flex-1 text-sm text-gray-500 truncate">
-        ${escapeHtml(h.query)}
-      </span>
-      <span class="text-xs text-gray-400 shrink-0">
-        ${relativeTime(h.time)}
-      </span>
-    </button>
-  `).join("");
+  <button
+    class="history-run w-full flex items-center gap-3 px-4 py-2.5 text-left rounded-xl nav-link hover:bg-green-light/60"
+    data-history-id="${h.id}"
+    data-query="${escapeHtml(h.query)}"
+  >
+    <i data-lucide="clock" class="w-4 h-4 text-gray-400 shrink-0"></i>
+    <span class="flex-1 text-sm text-gray-500 truncate">${escapeHtml(h.query)}</span>
+    <span class="text-xs text-gray-400 shrink-0">${relativeTime(h.time)}</span>
+  </button>
+`).join("");
 }
 
 function navLinksMarkup(active) {
@@ -200,11 +199,19 @@ showMoreHistory?.addEventListener("click", () => {
     recentDropdown.innerHTML = historyPreviewMarkup();
     recentDropdown.classList.toggle("hidden");
     if (window.lucide) lucide.createIcons();
-    recentDropdown.querySelectorAll(".history-run").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        window.location.href = `home.html?q=${encodeURIComponent(btn.dataset.query)}`;
-      });
-    });
+   recentDropdown.querySelectorAll(".history-run").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const historyId = btn.dataset.historyId;
+
+    if (!historyId) {
+      console.error("❌ History ID missing");
+      return;
+    }
+
+    window.location.href =
+      `new-chat.html?historyId=${encodeURIComponent(historyId)}`;
+  });
+});
   });
   document.addEventListener("click", (e) => {
     if (recentDropdown && !recentDropdown.contains(e.target) && e.target !== recentBtn && !recentBtn?.contains(e.target)) {

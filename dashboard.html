@@ -82,7 +82,9 @@
             <div class="lg:col-span-2 bg-white rounded-card border border-line p-6">
               <div class="flex items-center justify-between mb-4">
                 <h2 class="font-semibold">Recent activity</h2>
-                <a href="history.html" class="text-xs font-semibold text-green-dark hover:underline">View all</a>
+                <button id="dashViewAllHistory" class="text-xs font-semibold text-green-dark hover:underline">
+  View all
+</button>
               </div>
               <div id="dashActivity" class="flex flex-col divide-y divide-line"></div>
               <div id="dashActivityEmpty" class="hidden text-center py-10 text-muted text-sm">
@@ -125,14 +127,14 @@
       activityRoot.innerHTML = items
         .slice(0, 6)
         .map(
-          (h) => `
-          <a href="home.html?q=${encodeURIComponent(h.query)}" class="nav-link flex items-center gap-3 py-3 hover:bg-green-light/40 -mx-2 px-2 rounded-lg">
+  (h) => `
+  <div class="flex items-center gap-3 py-3 -mx-2 px-2 rounded-lg">
             <span class="w-8 h-8 rounded-lg bg-cream flex items-center justify-center shrink-0">
               <i data-lucide="search" class="w-4 h-4 text-green"></i>
             </span>
             <span class="flex-1 text-sm">${h.query}</span>
             <span class="text-xs text-muted">${relativeTime(h.time)}</span>
-          </a>`
+                    </div>`
         )
         .join("");
       if (window.lucide) lucide.createIcons();
@@ -142,6 +144,9 @@
       clearHistory();
       location.reload();
     });
+        document.getElementById("dashViewAllHistory")?.addEventListener("click", () => {
+  window.location.href = "history.html";
+});
   </script>
 </body>
 </html>
