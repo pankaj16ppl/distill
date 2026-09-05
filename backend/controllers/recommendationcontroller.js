@@ -14,8 +14,83 @@ const getRecommendations = async (req, res) => {
             });
         }
 
-        // Get active AI tools from Neon
-               const searchText = userTask.trim();
+        // Understand the user's intent before searching the database.
+        // This helps with misspellings, abbreviations, Hinglish,
+        // and natural-language queries.
+
+        let searchTerms = [];
+
+        try {
+            const intentPrompt = `
+You are the query-understanding layer for Distill.
+
+Understand the user's request and convert it into concise search
+concepts that can be used to find AI tools in a database.
+
+USER PROFESSION:
+${profession}
+
+USER TASK:
+${userTask}
+
+Rules:
+1. Understand the meaning, not just the exact spelling.
+2. Correct obvious spelling mistakes.
+3. Understand common abbreviations such as ppt, cv, resume, etc.
+4. Understand simple Hinglish and informal language.
+5. Do not recommend any tools.
+6. Return only search concepts.
+7. Return JSON only.
+8. Return 3 to 8 concise search terms.
+9. Prefer meaningful concepts such as task types, tool categories,
+   use cases, and common keywords.
+
+Return exactly this structure:
+
+{
+  "search_terms": [
+    "term 1",
+    "term 2",
+    "term 3"
+  ]
+}
+`;
+
+            const intentResponse = await ai.interactions.create({
+                model: "gemini-3.5-flash",
+                input: intentPrompt
+            });
+
+            const intentText = (intentResponse.output_text || "")
+                .replace(/```json/gi, "")
+                .replace(/```/g, "")
+                .trim();
+
+            const parsedIntent = JSON.parse(intentText);
+
+            if (Array.isArray(parsedIntent.search_terms)) {
+                searchTerms = parsedIntent.search_terms
+                    .filter(term => typeof term === "string")
+                    .map(term => term.trim().toLowerCase())
+                    .filter(Boolean)
+                    .slice(0, 8);
+            }
+        } catch (error) {
+            console.error("Intent understanding error:", error.message);
+        }
+
+        // Always keep the original query as a fallback.
+        const originalSearch = userTask.trim().toLowerCase();
+
+        if (originalSearch && !searchTerms.includes(originalSearch)) {
+            searchTerms.push(originalSearch);
+        }
+
+        if (!searchTerms.length) {
+            searchTerms = [originalSearch];
+        }
+
+const searchPatterns = searchTerms.map(term => `%${term}%`);
 
 const result = await pool.query(
     `
@@ -41,27 +116,30 @@ const result = await pool.query(
     FROM ai_tools
     WHERE is_active = true
       AND (
-          tool_name ILIKE $1
-          OR category ILIKE $1
-          OR subcategory ILIKE $1
-          OR description ILIKE $1
-          OR best_use_cases ILIKE $1
-          OR primary_use ILIKE $1
-          OR tags::text ILIKE $1
+          tool_name ILIKE ANY($1::text[])
+          OR category ILIKE ANY($1::text[])
+          OR subcategory ILIKE ANY($1::text[])
+          OR target_users ILIKE ANY($1::text[])
+          OR description ILIKE ANY($1::text[])
+          OR best_use_cases ILIKE ANY($1::text[])
+          OR primary_use ILIKE ANY($1::text[])
+          OR tags::text ILIKE ANY($1::text[])
       )
     ORDER BY
-        CASE
-            WHEN tool_name ILIKE $1 THEN 1
-            WHEN category ILIKE $1 THEN 2
-            WHEN subcategory ILIKE $1 THEN 3
-            WHEN best_use_cases ILIKE $1 THEN 4
-            WHEN primary_use ILIKE $1 THEN 5
-            ELSE 6
-        END,
+        (
+            CASE WHEN tool_name ILIKE ANY($1::text[]) THEN 100 ELSE 0 END +
+            CASE WHEN category ILIKE ANY($1::text[]) THEN 80 ELSE 0 END +
+            CASE WHEN subcategory ILIKE ANY($1::text[]) THEN 70 ELSE 0 END +
+            CASE WHEN primary_use ILIKE ANY($1::text[]) THEN 60 ELSE 0 END +
+            CASE WHEN best_use_cases ILIKE ANY($1::text[]) THEN 50 ELSE 0 END +
+            CASE WHEN target_users ILIKE ANY($1::text[]) THEN 40 ELSE 0 END +
+            CASE WHEN description ILIKE ANY($1::text[]) THEN 30 ELSE 0 END +
+            CASE WHEN tags::text ILIKE ANY($1::text[]) THEN 20 ELSE 0 END
+        ) DESC,
         id
     LIMIT 30
     `,
-    [`%${searchText}%`]
+    [searchPatterns]
 );
 
         const tools = result.rows;

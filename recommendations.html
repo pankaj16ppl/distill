@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -47,7 +48,6 @@
 
           <!-- Results Blocks -->
           <div id="resultsBlocks">
-            <!-- Empty State -->
             <div id="emptyState" class="text-center py-20">
               <i data-lucide="search-x" class="w-10 h-10 text-gray-300 mx-auto"></i>
               <p class="mt-4 text-muted">Search for a task above to see your matches.</p>
@@ -66,19 +66,17 @@
   </div>
 
   <script src="js/auth.js"></script>
-<script src="js/history.js"></script>
-<script src="js/components.js"></script>
-<script src="js/rating.js"></script>
-<script src="js/recommendation-card.js"></script>
-<script src="js/results.js"></script>
+  <script src="js/history.js"></script>
+  <script src="js/components.js"></script>
+  <script src="js/rating.js"></script>
+  <script src="js/recommendation-card.js"></script>
+
   <script>
     requireAuth();
     renderShell("recommendations");
 
-    // State
     let activeQueries = [];
 
-    // DOM refs
     const searchInput = document.getElementById('homeSearchInput');
     const searchBtn = document.getElementById('homeSearchBtn');
     const voiceSearchBtn = document.getElementById('voiceSearchBtn');
@@ -143,9 +141,12 @@
       activeTags.innerHTML = activeQueries.map((q, i) => `
         <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-light text-green-dark text-xs font-semibold">
           ${q}
-          <button class="remove-tag hover:text-red-500" data-index="${i}"><i data-lucide="x" class="w-3 h-3"></i></button>
+          <button class="remove-tag hover:text-red-500" data-index="${i}">
+            <i data-lucide="x" class="w-3 h-3"></i>
+          </button>
         </span>
       `).join('');
+
       if (window.lucide) lucide.createIcons();
 
       document.querySelectorAll('.remove-tag').forEach(btn => {
@@ -153,6 +154,7 @@
           const idx = parseInt(btn.dataset.index);
           activeQueries.splice(idx, 1);
           renderTags();
+
           if (activeQueries.length === 0) {
             resultsBlocks.innerHTML = '';
             emptyState.classList.remove('hidden');
@@ -163,42 +165,56 @@
       });
     }
 
-    // Backend base — change if you deploy the API elsewhere.
     const API_BASE = "http://localhost:5000/api";
 
-    // recommendation-card.js expects: id, name, category, description,
-    // pricing (free|hybrid|paid), pros[], cons[], rating, url, credits.
-    // The ai_tools table gives us: id, tool_name, category, description,
-    // pricing, official_website, best_use_cases[], target_users[].
-    // This maps one shape to the other so nothing in recommendation-card.js
-    // has to change. `pros`/`cons` aren't real DB columns yet, so we fall
-    // back to best_use_cases for pros and leave cons empty — swap these two
-    // lines out once/if you add real pros/cons columns.
+    // Convert database tool data into recommendation-card format.
+    // query is the corrected displayQuery returned by the backend.
     function mapDbToolToCard(row, query) {
       const pricingRaw = (row.pricing || "hybrid").toLowerCase();
-      const pricing = ["free", "hybrid", "paid"].includes(pricingRaw) ? pricingRaw : "hybrid";
+      const pricing = ["free", "hybrid", "paid"].includes(pricingRaw)
+        ? pricingRaw
+        : "hybrid";
+
       return {
-        id: row.id, // real numeric ai_tools.id — this is what makes rating.js work
+        id: row.id,
         name: row.tool_name,
         category: row.category || "AI Tool",
         pricing,
         description: `Great for "${query}". ${row.description || ""}`,
-        pros: Array.isArray(row.best_use_cases) ? row.best_use_cases.slice(0, 2) : [],
+        pros: Array.isArray(row.best_use_cases)
+          ? row.best_use_cases.slice(0, 2)
+          : [],
         cons: [],
-        rating: 0, // placeholder — recommendation-card.js overwrites this live via /api/ratings
+        rating: 0,
         url: row.official_website || "#",
-        credits: row.pricing === "free" ? "Free tier available" : undefined,
+        credits: row.pricing === "free"
+          ? "Free tier available"
+          : undefined,
       };
     }
 
     async function fetchToolsFromDb(query) {
-      const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}`);
+      const res = await fetch(
+        `${API_BASE}/search?q=${encodeURIComponent(query)}`
+      );
+
+      if (!res.ok) {
+        throw new Error(`Search failed: ${res.status}`);
+      }
+
       const json = await res.json();
-      if (!json.success) throw new Error(json.message || "Search failed");
-      return json.data; // array of ai_tools rows
+
+      if (!json.success) {
+        throw new Error(json.message || "Search failed");
+      }
+
+      return {
+        tools: Array.isArray(json.data) ? json.data : [],
+        displayQuery: json.displayQuery || query
+      };
     }
 
-    // Main Search Function — now backed by Neon via GET /api/search.
+    // Main Search Function
     async function performSearch(append = false) {
       if (activeQueries.length === 0) {
         resultsBlocks.innerHTML = '';
@@ -207,10 +223,12 @@
       }
 
       emptyState.classList.add('hidden');
+
       const fullQuery = activeQueries.join(" ");
 
       const block = document.createElement('div');
       block.className = 'results-block mt-8 page-enter';
+
       if (append) {
         resultsBlocks.appendChild(block);
       } else {
@@ -218,69 +236,122 @@
         resultsBlocks.appendChild(block);
       }
 
-      // Skeleton while the DB responds.
       renderRecommendationSkeleton(block, 7);
 
       let rows;
+      let displayQuery;
+
       try {
-        rows = await fetchToolsFromDb(fullQuery);
+        const searchResult = await fetchToolsFromDb(fullQuery);
+
+        rows = searchResult.tools;
+        displayQuery = searchResult.displayQuery;
+
+        console.log("Original query:", fullQuery);
+        console.log("Display query:", displayQuery);
       } catch (err) {
         console.error("Search API error:", err);
-        block.innerHTML = `<p class="text-center text-muted py-16">Couldn't reach the server. Is the backend running on port 5000?</p>`;
+
+        block.innerHTML = `
+          <p class="text-center text-muted py-16">
+            Couldn't reach the server. Is the backend running on port 5000?
+          </p>
+        `;
+
         return;
       }
 
       if (!rows.length) {
-        block.innerHTML = `<p class="text-center text-muted py-16">No AI tools matched "${fullQuery}" yet.</p>`;
+        block.innerHTML = `
+          <p class="text-center text-muted py-16">
+            No AI tools matched "${displayQuery || fullQuery}" yet.
+          </p>
+        `;
+
         return;
       }
 
-      // rows[0] becomes the highlighted main card, rows[1..6] the six
-      // alternatives — renderRecommendationCards() handles that split.
-      const toolsForCards = rows.slice(0, 7).map((row) => mapDbToolToCard(row, fullQuery));
+      const toolsForCards = rows
+        .slice(0, 7)
+        .map((row) => mapDbToolToCard(row, displayQuery));
+
       renderRecommendationCards(block, toolsForCards);
 
       if (append) {
-        block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        block.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
       }
 
-      // Show up arrow if more than 1 block
-      upArrowBtn.style.opacity = resultsBlocks.children.length > 1 ? '1' : '0';
-      upArrowBtn.style.pointerEvents = resultsBlocks.children.length > 1 ? 'auto' : 'none';
+      upArrowBtn.style.opacity =
+        resultsBlocks.children.length > 1 ? '1' : '0';
+
+      upArrowBtn.style.pointerEvents =
+        resultsBlocks.children.length > 1 ? 'auto' : 'none';
     }
 
-    // Event Listeners
+    // Search button
     searchBtn.addEventListener('click', () => {
       const val = searchInput.value.trim();
+
       if (!val) return;
+
       activeQueries = [val];
-      history.replaceState(null, "", `recommendations.html?q=${encodeURIComponent(val)}`);
+
+      history.replaceState(
+        null,
+        "",
+        `recommendations.html?q=${encodeURIComponent(val)}`
+      );
+
       renderTags();
       performSearch(false);
     });
 
+    // Enter key
     searchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') searchBtn.click();
+      if (e.key === 'Enter') {
+        searchBtn.click();
+      }
     });
 
+    // Add query
     addBtn.addEventListener('click', () => {
       const val = searchInput.value.trim();
+
       if (!val) return;
+
       activeQueries.push(val);
       renderTags();
+
       searchInput.value = '';
       performSearch(true);
     });
 
+    // Scroll to top
     upArrowBtn.addEventListener('click', () => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
     });
 
     // Initialize
+    const params = new URLSearchParams(window.location.search);
+    const initialQuery = params.get("q");
+
+    if (initialQuery) {
+      activeQueries = [initialQuery];
+      searchInput.value = initialQuery;
+    }
+
     renderTags();
+
     if (activeQueries.length > 0) {
       performSearch(false);
     }
   </script>
 </body>
 </html>
+

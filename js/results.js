@@ -41,8 +41,9 @@ function mapDbToolToCard(tool) {
 
 async function fetchSearchResults(query) {
   const response = await fetch(
-  `http://localhost:5000/api/search?q=${encodeURIComponent(query)}`
-);
+    `http://localhost:5000/api/search?q=${encodeURIComponent(query)}`
+  );
+
   if (!response.ok) {
     throw new Error(`Search failed: ${response.status}`);
   }
@@ -53,7 +54,10 @@ async function fetchSearchResults(query) {
     throw new Error(result.message || "Search failed");
   }
 
-  return Array.isArray(result.data) ? result.data : [];
+  return {
+    tools: Array.isArray(result.data) ? result.data : [],
+    displayQuery: result.displayQuery || query,
+  };
 }
 
 
@@ -85,10 +89,14 @@ async function runSearch(query) {
       </div>
     `;
 
-    const dbTools = await fetchSearchResults(query);
+    const searchResult = await fetchSearchResults(query);
 
-    console.log("✅ API tools:", dbTools);
-    console.log("✅ API count:", dbTools.length);
+const dbTools = searchResult.tools;
+const displayQuery = searchResult.displayQuery;
+
+console.log("✅ API tools:", dbTools);
+console.log("✅ API count:", dbTools.length);
+console.log("✅ Display query:", displayQuery);
 
     if (!dbTools.length) {
       resultsBlocks.innerHTML = `
