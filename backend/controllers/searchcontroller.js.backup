@@ -1,0 +1,118 @@
+const searchModel = require("../models/searchmodel");
+const ai = require("../config/gemini");
+
+const searchTools = async (req, res) => {
+    try {
+        const { q } = req.query;
+
+        if (!q || q.trim() === "") {
+            return res.status(400).json({
+                success: false,
+                message: "Search query is required"
+            });
+        }
+
+        const originalQuery = q.trim();
+        let searchTerms = [];
+
+        try {
+            const prompt = `
+You are the query-understanding layer for Distill, an AI tool discovery platform.
+
+Convert the user's search query into useful database search terms.
+
+USER QUERY:
+${originalQuery}
+
+Rules:
+1. Understand the meaning, not only exact spelling.
+2. Correct obvious spelling mistakes.
+3. Understand common abbreviations such as ppt, cv, resume, pdf, etc.
+4. Understand natural-language requests.
+5. Extract useful task types, categories, use cases, and keywords.
+6. Return only concise search terms.
+7. Do not recommend AI tools.
+8. Do not invent tool names.
+9. Return between 3 and 8 search terms.
+10. Return JSON only.
+
+Return exactly:
+{
+  "search_terms": [
+    "term 1",
+    "term 2",
+    "term 3"
+  ]
+}
+`;
+
+            const response = await ai.interactions.create({
+                model: "gemini-3.5-flash",
+                input: prompt
+            });
+
+            const text = (response.output_text || "")
+                .replace(/```json/gi, "")
+                .replace(/```/g, "")
+                .trim();
+
+            const parsed = JSON.parse(text);
+
+            if (Array.isArray(parsed.search_terms)) {
+                searchTerms = parsed.search_terms
+                    .filter(term => typeof term === "string")
+                    .map(term => term.trim().toLowerCase())
+                    .filter(Boolean)
+                    .slice(0, 8);
+            }
+
+        } catch (error) {
+            console.error(
+                "Search intent understanding failed:",
+                error.message
+            );
+        }
+
+        const normalizedOriginal = originalQuery.toLowerCase();
+
+        if (
+            normalizedOriginal &&
+            !searchTerms.includes(normalizedOriginal)
+        ) {
+            searchTerms.push(normalizedOriginal);
+        }
+
+        if (!searchTerms.length) {
+            searchTerms = [normalizedOriginal];
+        }
+
+        console.log("Original query:", originalQuery);
+        console.log("Search terms:", searchTerms);
+
+       const tools = await searchModel.searchTools(searchTerms);
+
+const displayQuery = searchTerms.find(
+    term => term !== normalizedOriginal
+) || originalQuery;
+
+res.json({
+    success: true,
+    count: tools.length,
+    originalQuery,
+    displayQuery,
+    data: tools
+});
+
+    } catch (error) {
+        console.error("Search Error:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Failed to search AI tools"
+        });
+    }
+};
+
+module.exports = {
+    searchTools
+};
