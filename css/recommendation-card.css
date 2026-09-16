@@ -1,129 +1,227 @@
 /**
  * recommendation-card.css
- * Standalone styles for the Distill recommendation card component.
- * Namespaced under `.rcard-` so it can be dropped into any existing page
- * without colliding with classes already in use there (e.g. this project's
- * own `.rec-card` / `.flip-card`).
+ * Distill Recommendation Card
+ *
+ * Content-driven layout.
+ * The card height is determined by the information actually rendered.
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+/* =========================================================
+   1. VARIABLES
+   ========================================================= */
 
 :root {
-  --rcard-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --rcard-border: #EAEAEA;
-  --rcard-shadow: 0 10px 35px rgba(0, 0, 0, 0.06);
-  --rcard-shadow-hover: 0 16px 44px rgba(0, 0, 0, 0.09);
-  --rcard-radius: 20px;
-  --rcard-radius-btn: 12px;
-  --rcard-ink: #111827;
-  --rcard-muted: #6B7280;
   --rcard-green: #4CAF50;
   --rcard-green-dark: #3F9C43;
   --rcard-green-light: #EAF8EC;
+
   --rcard-gold: #D4AF37;
+
+  /* Stronger readable text */
+  --rcard-text: #111827;
+  --rcard-text-secondary: #374151;
+  --rcard-muted: #4B5563;
+
+  --rcard-border: #E2E2E2;
+  --rcard-soft-bg: #F8F9FA;
+
+  --rcard-free: #15803D;
+  --rcard-hybrid: #B77900;
+  --rcard-paid: #C53939;
+
+  --rcard-radius: 18px;
+  --rcard-small-radius: 10px;
+
+  --rcard-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.06);
+
+  --rcard-shadow-hover:
+    0 14px 36px rgba(0, 0, 0, 0.09);
+
+  --rcard-ease:
+    cubic-bezier(0.22, 1, 0.36, 1);
+
   --rcard-free: #22A559;
   --rcard-hybrid: #D8A400;
   --rcard-paid: #DC4C4C;
+
+  --rcard-radius: 18px;
+  --rcard-small-radius: 10px;
+
+  --rcard-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.06);
+
+  --rcard-shadow-hover:
+    0 14px 36px rgba(0, 0, 0, 0.09);
+
+  --rcard-ease:
+    cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+
+/* =========================================================
+   2. GRID
+   ========================================================= */
+
 .rcard-grid {
-  font-family: 'Inter', system-ui, sans-serif;
-  color: var(--rcard-ink);
+  width: 100%;
+
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+
+  color: var(--rcard-text);
 }
 
 .rcard-grid * {
   box-sizing: border-box;
 }
 
-/* 8pt-grid spacing throughout: 8 / 16 / 24 / 32 / 40px
- *
- * All cards — the highlighted "main" pick and every alternative — now
- * live in ONE responsive grid so they share identical width and height.
- * `auto-fit` + `minmax()` reflows the column count on its own as the
- * viewport shrinks, so this works for any container/screen size without
- * hand-maintained breakpoints. `grid-auto-rows: 1fr` keeps every card in
- * a row the same height even if the browser wraps unevenly.
- */
 .rcard-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 24px;
-  align-items: stretch;
-  grid-auto-rows: 1fr;
+  width: 100%;
   max-width: 1180px;
+
   margin: 0 auto;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(auto-fit, minmax(320px, 1fr));
+
+  gap: 22px;
+
+  align-items: start;
 }
 
-/* Below ~560px a single column reads better than a cramped 260px one. */
-@media (max-width: 560px) {
-  .rcard-row { grid-template-columns: 1fr; }
-}
-
-/* Deprecated aliases kept so any old markup still using the previous
-   `.rcard-main-row` / `.rcard-alt-row` wrapper classes doesn't break. */
 .rcard-main-row,
-.rcard-alt-row { display: contents; }
+.rcard-alt-row {
+  display: contents;
+}
 
-/* ── Card shell ─────────────────────────────────────────────────────── */
-/* Fixed height is what actually makes every card equal — a shared height
-   plus internal clamping (below) instead of letting content push each
-   card to whatever length its own text happens to need. */
+
+/* =========================================================
+   3. CARD
+   ========================================================= */
+
 .rcard {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  height: var(--rcard-height, 440px);
+
+  width: 100%;
+
+  /*
+   * No fixed height.
+   * Content determines the card height.
+   */
+  height: auto;
+  min-height: 0;
+
   background: #FFFFFF;
+
   border: 1px solid var(--rcard-border);
   border-radius: var(--rcard-radius);
+
   box-shadow: var(--rcard-shadow);
-  transition: transform 260ms var(--rcard-ease), box-shadow 260ms var(--rcard-ease);
+
+  overflow: hidden;
+
   perspective: 1400px;
+
+  transition:
+    transform 220ms var(--rcard-ease),
+    box-shadow 220ms var(--rcard-ease);
 }
 
 .rcard:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
+
   box-shadow: var(--rcard-shadow-hover);
 }
 
-@media (max-width: 560px) {
-  .rcard { height: var(--rcard-height-mobile, 420px); }
-}
 
-/* Main / highlighted card: same footprint as every other card, just a
-   distinct border + badge so it doesn't unbalance the grid. */
+/* Highlighted recommendation */
+
 .rcard--main {
   border: 1.5px solid var(--rcard-gold);
-  box-shadow: 0 20px 48px rgba(212, 175, 55, 0.18), 0 8px 24px rgba(0, 0, 0, 0.05);
+
+  box-shadow:
+    0 14px 38px rgba(212, 175, 55, 0.14),
+    0 8px 24px rgba(0, 0, 0, 0.05);
 }
+
+
+/* =========================================================
+   4. RECOMMENDED BADGE
+   ========================================================= */
 
 .rcard-badge-main {
   position: absolute;
-  top: -14px;
-  left: 24px;
+
+  top: 12px;
+  left: 18px;
+
+  z-index: 10;
+
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+
+  gap: 5px;
+
+  padding: 5px 11px;
+
   background: var(--rcard-gold);
   color: #FFFFFF;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  padding: 6px 14px;
+
   border-radius: 999px;
-  box-shadow: 0 4px 14px rgba(212, 175, 55, 0.35);
-  z-index: 2;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  line-height: 1;
+
+  white-space: nowrap;
+
+  box-shadow:
+    0 4px 12px rgba(212, 175, 55, 0.22);
 }
 
-/* ── Flip mechanics (GPU-accelerated 3D transform) ─────────────────── */
+
+/*
+ * Reserve only the small amount of space needed
+ * for the badge.
+ */
+.rcard-front {
+  padding-top: 48px !important;
+}
+
+
+/* =========================================================
+   5. FLIP SYSTEM
+   ========================================================= */
+
+/*
+ * CSS Grid lets the front determine the height naturally.
+ *
+ * No fixed 500px / 600px height.
+ */
+
 .rcard-inner {
-  position: relative;
   width: 100%;
-  height: 100%;
-  flex: 1;
-  transition: transform 550ms var(--rcard-ease);
+
+  display: grid;
+
+  grid-template-columns: 1fr;
+  grid-template-rows: auto;
+
   transform-style: preserve-3d;
-  will-change: transform;
+
+  transition:
+    transform 520ms var(--rcard-ease);
+
   cursor: pointer;
 }
 
@@ -131,380 +229,1010 @@
   transform: rotateY(180deg);
 }
 
+
+/*
+ * Both faces occupy the same grid cell.
+ * Their natural height determines card height.
+ */
+
 .rcard-front,
 .rcard-back {
-  position: absolute;
-  inset: 0;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+  grid-area: 1 / 1;
+
+  width: 100%;
+
+  padding: 18px;
+
   display: flex;
   flex-direction: column;
-  padding: 24px;
+
+  background: #FFFFFF;
+
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+
   overflow: hidden;
 }
 
-.rcard-front { position: relative; }
-.rcard-back { transform: rotateY(180deg); align-items: center; justify-content: center; text-align: center; }
 
-/* ── Typography ─────────────────────────────────────────────────────── */
-/* Same font sizes on every card — including the "main" pick — so no
-   single card's text runs longer than the others just because it's
-   rendered bigger. */
-.rcard-name {
-  font-weight: 700;
-  font-size: 18px;
-  line-height: 1.3;
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+/* Front */
+
+.rcard-front {
+  z-index: 1;
 }
 
-.rcard-category {
-  font-weight: 400;
-  font-size: 12px;
-  color: var(--rcard-muted);
-  margin: 4px 0 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+
+/* Back */
+
+.rcard-back {
+  z-index: 2;
+
+  transform: rotateY(180deg);
+
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
 }
 
-.rcard-description {
-  font-weight: 400;
-  font-size: 14px;
-  line-height: 1.6;
-  color: rgba(17, 24, 39, 0.82);
-  margin: 16px 0 0;
-  /* Clamp to 3 lines so a long blurb can never stretch one card taller
-     than the rest of the row. */
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
 
-/* ── Header row (logo + name + pricing badge) ──────────────────────── */
+/* =========================================================
+   6. HEADER
+   ========================================================= */
+
 .rcard-header {
+  width: 100%;
+
   display: flex;
+
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+
+  gap: 10px;
+
+  flex-shrink: 0;
 }
 
 .rcard-identity {
+  min-width: 0;
+
+  flex: 1;
+
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-width: 0;
+
+  gap: 10px;
+}
+
+
+/* =========================================================
+   LOGO
+   ========================================================= */
+
+.rcard-logo {
+  width: 44px;
+  height: 44px;
+
+  flex: 0 0 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #FFFFFF;
+
+  border: 1px solid #ECECEC;
+
+  border-radius: 11px;
+
+  overflow: hidden;
+
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.rcard-logo img {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  max-width: 100%;
+  max-height: 100%;
+
+  object-fit: contain;
+
+  padding: 7px;
+
+  box-sizing: border-box;
+}
+
+.rcard-logo {
+  width: 44px;
+  height: 44px;
+
+  flex: 0 0 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #FFFFFF;
+  border: 1px solid #ECECEC;
+  border-radius: 11px;
+
+  overflow: hidden;
 }
 
 .rcard-logo img {
   width: 100%;
   height: 100%;
+
+  display: block;
+
   object-fit: contain;
   padding: 6px;
-  display: block;
+
+  box-sizing: border-box;
 }
 
-.rcard-logo-fallback {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
+/* =========================================================
+   8. NAME / CATEGORY
+   ========================================================= */
+
+.rcard-name {
+  min-width: 0;
+
+  margin: 0;
+
+  color: var(--rcard-text);
+
+  font-size: 17px;
+  font-weight: 700;
+
+  line-height: 1.25;
+
+  display: -webkit-box;
+
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+
+  overflow: hidden;
 }
+.rcard-category {
+  margin: 3px 0 0;
+
+  color: var(--rcard-muted);
+
+  font-size: 11px;
+
+  line-height: 1.3;
+
+  white-space: nowrap;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* =========================================================
+   9. PRICING BADGE
+   ========================================================= */
 
 .rcard-pricing {
-  flex-shrink: 0;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 4px 10px;
+  flex: 0 0 auto;
+
+  padding: 5px 9px;
+
   border-radius: 999px;
-}
-.rcard-pricing--free   { background: #EAF8EC; color: var(--rcard-free); }
-.rcard-pricing--hybrid { background: #FFF8E5; color: var(--rcard-hybrid); }
-.rcard-pricing--paid   { background: #FDECEC; color: var(--rcard-paid); }
 
-/* ── Pros / cons ────────────────────────────────────────────────────── */
-.rcard-proscons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-top: 16px;
-  font-size: 12px;
-}
-.rcard-proscons h4 {
+  font-size: 10px;
   font-weight: 600;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  margin: 0 0 6px;
-}
-.rcard-proscons ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  color: var(--rcard-muted);
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-/* Every card shows the same number of pros/cons lines (2, set in JS) and
-   each line clamps to one row instead of wrapping — keeps this block the
-   same height no matter how long an individual point's wording is. */
-.rcard-proscons li {
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  gap: 6px;
-}
 
-/* ── Footer: credits, Distill Rating, visit/save ───────────────────── */
-.rcard-footer {
-  margin-top: auto;
-  padding-top: 16px;
-}
-
-.rcard-meta-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 12px;
-  flex-wrap: wrap;
-}
-
-.rcard-rating-trigger {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  padding: 8px 4px;
-  min-height: 44px;
-  cursor: pointer;
-  color: inherit;
-  font-family: inherit;
-  border-radius: 8px;
-}
-.rcard-rating-trigger:hover { color: var(--rcard-hybrid); }
-
-.rcard-stars-static { display: inline-flex; gap: 1px; }
-.rcard-star-svg { width: 14px; height: 14px; }
-.rcard-star-svg.is-filled { color: #F5B301; }
-.rcard-star-svg.is-empty { color: #E5E7EB; }
-
-.rcard-rating-value { font-weight: 700; }
-.rcard-rating-count { color: var(--rcard-muted); }
-
-.rcard-credits {
-  font-weight: 600;
-  color: var(--rcard-green-dark);
   white-space: nowrap;
 }
 
-.rcard-actions {
-  margin-top: 12px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.rcard-pricing--free {
+  color: var(--rcard-free);
+  background: #EAF8EC;
 }
 
-/* ── Buttons: scale 1.02, 600 weight, 44px min touch target ────────── */
-.rcard-btn {
-  font-family: inherit;
-  font-weight: 600;
-  font-size: 13px;
-  border-radius: var(--rcard-radius-btn);
-  border: none;
-  cursor: pointer;
-  min-height: 44px;
-  padding: 0 16px;
-  transition: transform 180ms var(--rcard-ease), background-color 220ms var(--rcard-ease), box-shadow 220ms var(--rcard-ease);
-}
-.rcard-btn:hover,
-.rcard-btn:focus-visible { transform: scale(1.02); }
-.rcard-btn:active { transform: scale(0.98); }
-.rcard-btn:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  transform: none !important;
+.rcard-pricing--hybrid {
+  color: var(--rcard-hybrid);
+  background: #FFF8E5;
 }
 
-.rcard-btn--primary {
-  flex: 1;
-  background: var(--rcard-green);
-  color: #FFFFFF;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  text-decoration: none;
+.rcard-pricing--paid {
+  color: var(--rcard-paid);
+  background: #FDECEC;
 }
-.rcard-btn--primary:hover { background: var(--rcard-green-dark); }
 
-.rcard-btn--icon {
+
+/* =========================================================
+   10. DESCRIPTION
+   ========================================================= */
+
+.rcard-description {
+  width: 100%;
+
+  margin: 12px 0 0;
+
+  color: var(--rcard-text-secondary);
+
+  font-size: 12px;
+
+  line-height: 1.5;
+
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+
+  overflow: hidden;
+
   flex-shrink: 0;
-  width: 44px;
-  padding: 0;
-  background: #FFFFFF;
-  border: 1px solid var(--rcard-border);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-.rcard-btn--icon[aria-pressed="true"] { border-color: var(--rcard-green); color: var(--rcard-green); }
-
-.rcard-btn--ghost {
-  background: var(--rcard-green-light);
-  color: var(--rcard-green-dark);
 }
 
-/* ── Back face: 5-star input + submit ───────────────────────────────── */
-.rcard-back-label {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+/* =========================================================
+   11. BEST FOR / PROS / CONS
+   ========================================================= */
+
+.rcard-info-grid {
+  width: 100%;
+
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 8px;
+
+  margin-top: 12px;
+
+  flex-shrink: 0;
+}
+
+
+/*
+ * Best for gets the entire row.
+ */
+
+.rcard-info-section:first-child {
+  grid-column: 1 / -1;
+}
+
+.rcard-info-section {
+  min-width: 0;
+
+  padding: 9px 10px;
+
+  background: var(--rcard-soft-bg);
+
+  border: 1px solid #EEEEEE;
+
+  border-radius: var(--rcard-small-radius);
+}
+
+.rcard-info-section h4 {
+  margin: 0 0 5px;
+
+  color: var(--rcard-text);
+
+  font-size: 10px;
+  font-weight: 700;
+
+  line-height: 1.2;
+
+  text-align: center;
+
   text-transform: uppercase;
-  color: var(--rcard-muted);
-  margin: 0;
-}
-.rcard-back-name { font-weight: 700; font-size: 15px; margin: 4px 0 16px; }
 
-.rcard-star-input {
-  border: none;
-  margin: 0 0 16px;
+  letter-spacing: 0.03em;
+}
+
+.rcard-info-section ul {
+  width: 100%;
+
+  margin: 0;
+  padding-left: 16px;
+}
+
+.rcard-info-section li {
+  margin: 3px 0;
+
+  color: var(--rcard-text-secondary);
+
+  font-size: 10.5px;
+
+  line-height: 1.4;
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+
+  overflow: hidden;
+}
+
+/* =========================================================
+   12. LIVE DATA
+   ========================================================= */
+
+.rcard-live-data {
+  width: 100%;
+
+  margin-top: 10px;
+
+  flex-shrink: 0;
+
+  overflow: hidden;
+}
+
+.rcard-live-section {
+  width: 100%;
+
+  margin-top: 7px;
+}
+
+.rcard-live-section h4 {
+  margin: 0 0 4px;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  line-height: 1.2;
+}
+
+.rcard-live-section ul {
+  width: 100%;
+
+  margin: 0;
   padding: 0;
+
+  list-style: none;
+}
+
+.rcard-live-section li {
+  width: 100%;
+
+  margin: 2px 0;
+
+  color: var(--rcard-muted);
+
+  font-size: 10px;
+
+  line-height: 1.35;
+
+  overflow-wrap: anywhere;
+  word-break: break-word;
+
+  display: -webkit-box;
+
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+
+  overflow: hidden;
+}
+
+.rcard-live-verified {
+  margin-top: 4px;
+
+  color: var(--rcard-muted);
+
+  font-size: 8.5px;
+
+  line-height: 1.25;
+}
+
+
+/* =========================================================
+   13. LIVE PRICING
+   ========================================================= */
+
+.rcard-live-pricing {
+  width: 100%;
+
+  margin-top: 10px;
+
+  flex-shrink: 0;
+}
+
+.rcard-live-pricing h4 {
+  margin: 0 0 5px;
+
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.rcard-plan-list {
+  width: 100%;
+
   display: flex;
-  flex-direction: row-reverse;
-  justify-content: center;
+  flex-direction: column;
+
   gap: 4px;
 }
 
-.rcard-star-input label {
-  cursor: pointer;
-  min-width: 44px;
-  min-height: 44px;
+.rcard-plan {
+  width: 100%;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 8px;
+
+  padding: 6px 8px;
+
+  background: #FFFFFF;
+
+  border:
+    1px solid #EEEEEE;
+
+  border-radius: 7px;
+}
+
+.rcard-plan-name {
+  min-width: 0;
+
+  font-size: 10px;
+
+  white-space: nowrap;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+}
+
+.rcard-plan-price {
+  flex: 0 0 auto;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   14. USAGE
+   ========================================================= */
+
+/*
+ * Usage is only styled here.
+ *
+ * IMPORTANT:
+ * If usage is not available, JS should NOT render
+ * the .rcard-usage element at all.
+ */
+
+.rcard-usage {
+  width: 100%;
+
+  margin-top: 9px;
+
+  padding: 8px 10px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 8px;
+
+  background: var(--rcard-green-light);
+
+  border-radius: 9px;
+
+  flex-shrink: 0;
+}
+
+.rcard-usage-label {
+  color: var(--rcard-green-dark);
+
+  font-size: 9px;
+  font-weight: 700;
+
+  text-transform: uppercase;
+
+  letter-spacing: 0.03em;
+}
+
+.rcard-usage-value {
+  min-width: 0;
+
+  color: var(--rcard-text);
+
+  font-size: 10px;
+  font-weight: 600;
+
+  line-height: 1.3;
+
+  text-align: right;
+
+  overflow-wrap: anywhere;
+}
+
+
+/* =========================================================
+   15. FOOTER
+   ========================================================= */
+
+.rcard-footer {
+  width: 100%;
+
+  /*
+   * Normal flow.
+   *
+   * No margin-top:auto.
+   */
+  margin-top: 10px;
+
+  flex-shrink: 0;
+}
+
+.rcard-meta-row {
+  width: 100%;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 8px;
+}
+
+
+/* =========================================================
+   16. RATING
+   ========================================================= */
+
+.rcard-rating-trigger {
+  min-height: 32px;
+
   display: inline-flex;
+
+  align-items: center;
+
+  gap: 5px;
+
+  padding: 4px 2px;
+
+  background: none;
+  border: none;
+
+  color: inherit;
+
+  font-family: inherit;
+
+  cursor: pointer;
+
+  border-radius: 7px;
+}
+
+.rcard-rating-trigger:hover {
+  color: var(--rcard-hybrid);
+}
+
+.rcard-stars-static {
+  display: inline-flex;
+
+  align-items: center;
+
+  gap: 1px;
+}
+
+.rcard-star-svg {
+  width: 13px;
+  height: 13px;
+}
+
+.rcard-star-svg.is-filled {
+  color: #F5B301;
+}
+
+.rcard-star-svg.is-empty {
+  color: #E5E7EB;
+}
+
+.rcard-rating-value {
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.rcard-rating-count {
+  color: var(--rcard-muted);
+
+  font-size: 10px;
+}
+
+.rcard-credits {
+  color: var(--rcard-green-dark);
+
+  font-size: 10px;
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   17. ACTIONS
+   ========================================================= */
+
+.rcard-actions {
+  width: 100%;
+
+  margin-top: 6px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 7px;
+}
+
+.rcard-btn {
+  min-height: 40px;
+
+  padding: 0 14px;
+
+  border: none;
+
+  border-radius: 10px;
+
+  font-family: inherit;
+
+  font-size: 11px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    transform 160ms var(--rcard-ease),
+    background-color 180ms var(--rcard-ease);
+}
+
+.rcard-btn:hover,
+.rcard-btn:focus-visible {
+  transform: scale(1.02);
+}
+
+.rcard-btn:active {
+  transform: scale(0.98);
+}
+
+.rcard-btn:disabled {
+  opacity: 0.45;
+
+  cursor: not-allowed;
+
+  transform: none !important;
+}
+
+
+/* Visit site */
+
+.rcard-btn--primary {
+  flex: 1;
+
+  min-width: 0;
+
+  display: inline-flex;
+
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  transition: box-shadow 200ms var(--rcard-ease), background-color 200ms var(--rcard-ease);
+
+  gap: 5px;
+
+  background: var(--rcard-green);
+
+  color: #FFFFFF;
+
+  text-decoration: none;
+}
+
+.rcard-btn--primary:hover {
+  background: var(--rcard-green-dark);
+}
+
+
+/* Bookmark */
+
+.rcard-btn--icon {
+  width: 40px;
+  min-width: 40px;
+
+  padding: 0;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  background: #FFFFFF;
+
+  border: 1px solid var(--rcard-border);
+}
+
+.rcard-btn--icon[aria-pressed="true"] {
+  color: var(--rcard-green);
+
+  border-color: var(--rcard-green);
+}
+
+
+/* =========================================================
+   18. BACK FACE
+   ========================================================= */
+
+.rcard-back-label {
+  margin: 0;
+
+  color: var(--rcard-muted);
+
+  font-size: 10px;
+  font-weight: 600;
+
+  letter-spacing: 0.04em;
+
+  text-transform: uppercase;
+}
+
+.rcard-back-name {
+  margin: 4px 0 12px;
+
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.rcard-star-input {
+  display: flex;
+
+  flex-direction: row-reverse;
+
+  justify-content: center;
+
+  gap: 3px;
+
+  margin: 0 0 12px;
+
+  padding: 0;
+
+  border: none;
+}
+
+.rcard-star-input label {
+  width: 40px;
+  height: 40px;
+
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 9px;
+
+  cursor: pointer;
 }
 
 .rcard-star-input input {
   position: absolute;
+
   width: 1px;
   height: 1px;
+
   padding: 0;
   margin: -1px;
+
   overflow: hidden;
+
   clip: rect(0, 0, 0, 0);
+
   white-space: nowrap;
+
   border: 0;
 }
 
-/* Glow animation on the input group when a card is flipped/focused */
-.rcard-star-input:focus-within,
-.rcard-star-input.is-glowing {
-  animation: rcardGlow 1400ms var(--rcard-ease) 1;
-}
-@keyframes rcardGlow {
-  0%   { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
-  30%  { box-shadow: 0 0 0 8px rgba(76, 175, 80, 0.14); }
-  100% { box-shadow: 0 0 0 0 rgba(76, 175, 80, 0); }
-}
-
-.rcard-star-input input:focus-visible + svg {
-  outline: 2px solid var(--rcard-green);
-  outline-offset: 2px;
-  border-radius: 6px;
-}
-
 .rcard-star-input label svg {
-  width: 22px;
-  height: 22px;
+  width: 21px;
+  height: 21px;
+
   color: #E5E7EB;
-  transition: color 150ms var(--rcard-ease);
+
   pointer-events: none;
 }
 
 .rcard-star-input input:checked ~ label svg,
 .rcard-star-input label:hover svg,
+.rcard-star-input label:hover ~ label svg,
 .rcard-star-input label.is-preview svg {
   color: #F5B301;
 }
 
-/* radios come after their label in source order (see JS) so this
-   general-sibling selector lights up every star up to the hovered one */
-.rcard-star-input label:hover svg,
-.rcard-star-input label:hover ~ label svg { color: #F5B301; }
-
 .rcard-my-rating-note {
-  font-size: 12px;
+  margin: 0 0 10px;
+
   color: var(--rcard-muted);
-  margin: 0 0 12px;
+
+  font-size: 11px;
 }
 
 .rcard-back-summary {
-  font-size: 12px;
+  margin-top: 12px;
+
   color: var(--rcard-muted);
-  margin-top: 16px;
+
+  font-size: 11px;
+
+  line-height: 1.4;
 }
-.rcard-back-summary strong { color: var(--rcard-ink); }
+
+.rcard-back-summary strong {
+  color: var(--rcard-text);
+}
 
 .rcard-back-close {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  border: none;
-  background: none;
-  cursor: pointer;
+
+  top: 10px;
+  right: 10px;
+
+  width: 38px;
+  height: 38px;
+
   display: inline-flex;
+
   align-items: center;
   justify-content: center;
-  color: var(--rcard-muted);
-}
-.rcard-back-close:hover { background: var(--rcard-green-light); color: var(--rcard-green-dark); }
 
-/* ── Accessibility: visible focus ring everywhere ──────────────────── */
+  background: none;
+
+  border: none;
+
+  border-radius: 9px;
+
+  color: var(--rcard-muted);
+
+  cursor: pointer;
+}
+
+.rcard-back-close:hover {
+  background: var(--rcard-green-light);
+  color: var(--rcard-green-dark);
+}
+
+
+/* =========================================================
+   19. ACCESSIBILITY
+   ========================================================= */
+
 .rcard a:focus-visible,
 .rcard button:focus-visible,
 .rcard input:focus-visible {
   outline: 2px solid var(--rcard-green);
+
   outline-offset: 2px;
-  border-radius: 8px;
+
+  border-radius: 7px;
 }
 
-/* ── Entrance animation ─────────────────────────────────────────────── */
+
+/* =========================================================
+   20. ENTRANCE ANIMATION
+   ========================================================= */
+
 .rcard-enter {
-  animation: rcardFadeUp 480ms var(--rcard-ease) both;
+  animation:
+    rcardFadeUp 400ms var(--rcard-ease) both;
 }
+
 @keyframes rcardFadeUp {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: translateY(0); }
+
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
 }
+
+
+/* =========================================================
+   21. SKELETON
+   ========================================================= */
 
 .rcard-skeleton {
-  background: linear-gradient(90deg, #F3F4F6 25%, #ECECEC 37%, #F3F4F6 63%);
+  background:
+    linear-gradient(
+      90deg,
+      #F3F4F6 25%,
+      #ECECEC 37%,
+      #F3F4F6 63%
+    );
+
   background-size: 400% 100%;
-  animation: rcardShimmer 1.4s ease infinite;
+
+  animation:
+    rcardShimmer 1.4s ease infinite;
+
   border-radius: 8px;
 }
+
 @keyframes rcardShimmer {
-  0% { background-position: 100% 50%; }
-  100% { background-position: 0 50%; }
+
+  0% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+
 }
 
+
+/* =========================================================
+   22. MOBILE
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+  .rcard-row {
+    grid-template-columns: 1fr;
+
+    gap: 18px;
+  }
+
+}
+
+@media (max-width: 460px) {
+
+  .rcard-front,
+  .rcard-back {
+    padding: 15px;
+  }
+
+  .rcard-front {
+    padding-top: 46px !important;
+  }
+
+  .rcard-info-grid {
+    gap: 7px;
+  }
+
+  .rcard-info-section {
+    padding: 8px;
+  }
+
+  .rcard-description {
+    font-size: 11.5px;
+  }
+
+  .rcard-info-section li {
+    font-size: 10px;
+  }
+
+}
+
+
+/* =========================================================
+   23. REDUCED MOTION
+   ========================================================= */
+
 @media (prefers-reduced-motion: reduce) {
-  .rcard, .rcard-inner, .rcard-btn, .rcard-star-input, .rcard-enter, .rcard-skeleton {
+
+  .rcard,
+  .rcard-inner,
+  .rcard-btn,
+  .rcard-enter,
+  .rcard-skeleton {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;
   }
+
 }

@@ -41,17 +41,52 @@ function normalizePricing(value) {
 
 function mapDbToolToCard(row) {
   return {
-    id: row.id, // numeric, matches ai_tools.id — required for rating.js (setRating/getMyRating expect a numeric toolId)
+    id: row.id,
+
     name: row.tool_name || "Untitled tool",
+
     category: row.category || row.subcategory || "AI Tool",
+
     description: row.description || row.best_use_cases || "",
+
     url: row.official_website || row.source_url || "#",
+
     pricing: normalizePricing(row.pricing),
-    credits: "Not specified", // see note above — add a `credits` column to map this for real
+
+    credits: row.free_plan_details || "Not specified",
+
     pros: [],
+
     cons: [],
-    rating: 0, // live average is fetched per-card via js/rating.js (getAvgRating), this is only a pre-fetch placeholder
-    keywords: [row.tool_name, row.category, row.subcategory, row.description]
+
+    rating: 0,
+
+    // Verified live data from backend
+    livePlans: Array.isArray(row.live_plans) ? row.live_plans : [],
+
+    liveFeatures: Array.isArray(row.live_features)
+      ? row.live_features
+      : [],
+
+    // Source health
+    sourceStatus: row.source_status || "unknown",
+    sourceHttpStatus: row.http_status || null,
+    lastSuccessAt: row.last_success_at || null,
+    lastError: row.last_error || null,
+
+    // Existing database information
+    aiModels: Array.isArray(row.ai_models) ? row.ai_models : [],
+    platforms: Array.isArray(row.platforms) ? row.platforms : [],
+
+    keywords: [
+      row.tool_name,
+      row.category,
+      row.subcategory,
+      row.description,
+      row.best_use_cases,
+      row.free_plan_details,
+      row.paid_plans,
+    ]
       .filter(Boolean)
       .join(" ")
       .toLowerCase()

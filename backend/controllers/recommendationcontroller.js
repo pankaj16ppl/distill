@@ -174,9 +174,7 @@ const result = await pool.query(
         }));
 
         const prompt = `
-You are the recommendation engine for Distill.
-
-Your job is to recommend the best AI tools from the provided Distill database.
+You are the recommendation and live-data verification engine for Distill.
 
 USER PROFESSION:
 ${profession}
@@ -187,33 +185,52 @@ ${userTask}
 DATABASE TOOLS:
 ${JSON.stringify(toolData, null, 2)}
 
-STRICT RULES:
+Your job has TWO stages.
 
-1. Use ONLY tools present in the database.
-2. Never invent a tool.
-3. Return EXACTLY 7 tools.
-4. Rank them from best match to weakest match.
-5. The first tool must be the strongest overall match.
-6. Match the user's task against:
-   - profession
-   - category
-   - subcategory
-   - target users
-   - description
-   - best use cases
-   - pricing
-   - primary use
-   - tags
-7. Do not change the database tool name.
-8. Do not invent pricing, features, URLs, models or other factual information.
-9. "reason" must explain why the tool matches THIS user's task.
-10. "how_it_helps" must explain what the user can actually do with the tool for THIS task.
-11. "pros" must contain 2 short strengths supported by the database information.
-12. "cons" must contain 2 short limitations based only on information available in the database.
-13. Keep every explanation short and useful.
-14. Return JSON only.
-15. No markdown.
-16. No text before or after the JSON.
+STAGE 1 — RECOMMENDATION
+Select the best matching tools ONLY from DATABASE TOOLS.
+
+STAGE 2 — LIVE VERIFICATION
+For ONLY the tools you selected, verify their CURRENT information
+using Google Search.
+
+Verify these volatile fields:
+
+1. Current pricing
+2. Free plan
+3. Credits / credit points
+4. Message limits
+5. Upload limits
+6. Minutes
+7. Hours
+8. Storage limits
+9. Important usage limits
+10. Current offers / discounts
+
+IMPORTANT RULES:
+
+- NEVER invent a value.
+- NEVER estimate a value.
+- NEVER use old knowledge when a current source can be found.
+- Prefer the official website of the tool.
+- Search the official pricing/help/plan pages when possible.
+- If a value cannot be verified, return null.
+- If there is no current offer, return null.
+- Keep the database tool name exactly unchanged.
+- Return ONLY tools that exist in DATABASE TOOLS.
+- Return at most 7 tools.
+- Rank the tools from best match to weakest match.
+- Each live value must have a source URL when available.
+- Include the date on which the information was verified.
+17. After selecting the best tools, verify their CURRENT information using Google Search.
+18. Verify only the selected recommended tools.
+19. Prefer the official website as the source.
+20. Check current pricing, free plan, credits, messages, uploads, minutes, hours, storage, usage limits and offers.
+21. Never guess or invent current information.
+22. If a value cannot be verified, return null.
+23. Return the official source URL and verification date when available.
+
+Return ONLY valid JSON.
 
 Return exactly this structure:
 
@@ -230,18 +247,40 @@ Return exactly this structure:
       "cons": [
         "limitation 1",
         "limitation 2"
-      ]
+      ],
+      "live_data": {
+        "pricing": null,
+        "free_plan": null,
+        "credits": null,
+        "messages": null,
+        "uploads": null,
+        "minutes": null,
+        "hours": null,
+        "storage": null,
+        "usage_limits": [],
+        "offer": null,
+        "source_url": null,
+        "verified_at": null
+      }
     }
   ]
 }
 `;
 
         const interaction = await ai.interactions.create({
-            model: "gemini-3.5-flash",
-            input: prompt
-        });
+    model: "gemini-3.5-flash",
+    input: prompt,
+    tools: [
+        {
+            type: "google_search"
+        }
+    ]
+});
 
         const aiText = interaction.output_text || "";
+        console.log("========== GEMINI LIVE RESPONSE ==========");
+        console.log(aiText);
+        console.log("==========================================");
 
         const cleanedText = aiText
             .replace(/```json/gi, "")
@@ -288,16 +327,75 @@ for (const recommendation of aiRecommendations.recommendations || []) {
     if (usedToolIds.has(tool.id)) continue;
 
     usedToolIds.add(tool.id);
+const liveData = recommendation.live_data || {};
 
-    recommendedTools.push({
-        id: tool.id,
-        name: tool.tool_name,
-        category: tool.category,
-        description: tool.description,
-        url: tool.official_website,
-        pricing: tool.pricing,
+recommendedTools.push({
+    id: tool.id,
+    name: tool.tool_name,
+    category: tool.category,
+    description: tool.description,
+    url: tool.official_website,
+    pricing: liveData.pricing || tool.pricing,
 
-        credits: tool.free_plan_details || "See free plan details",
+    credits: liveData.credits || null,
+
+    live_data: liveData,
+
+    live_features: [
+        liveData.free_plan
+            ? {
+                feature_name: `Free plan: ${liveData.free_plan}`,
+                plan_name: "Free"
+            }
+            : null,
+
+        liveData.messages
+            ? {
+                feature_name: `Messages: ${liveData.messages}`,
+                plan_name: null
+            }
+            : null,
+
+        liveData.uploads
+            ? {
+                feature_name: `Uploads: ${liveData.uploads}`,
+                plan_name: null
+            }
+            : null,
+
+        liveData.minutes
+            ? {
+                feature_name: `Minutes: ${liveData.minutes}`,
+                plan_name: null
+            }
+            : null,
+
+        liveData.hours
+            ? {
+                feature_name: `Hours: ${liveData.hours}`,
+                plan_name: null
+            }
+            : null,
+
+        liveData.storage
+            ? {
+                feature_name: `Storage: ${liveData.storage}`,
+                plan_name: null
+            }
+            : null
+    ].filter(Boolean),
+
+    live_plans: [
+        liveData.pricing
+            ? {
+                plan_name: liveData.pricing,
+                price: liveData.pricing
+            }
+            : null
+    ].filter(Boolean),
+
+    live_source_url: liveData.source_url || null,
+    live_verified_at: liveData.verified_at || null,
 
         pros: Array.isArray(recommendation.pros)
             ? recommendation.pros.slice(0, 2)

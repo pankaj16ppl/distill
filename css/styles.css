@@ -1,286 +1,541 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* =========================================================
+   DISTILL GLOBAL STYLES
+   ========================================================= */
+
+
+/* =========================================================
+   1. FONTS & GLOBAL VARIABLES
+   ========================================================= */
+
+@import url(
+  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap'
+);
 
 :root {
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --text: #111827;
+  --text-secondary: #374151;
+  --muted: #4B5563;
+
+  --green: #4CAF50;
+  --green-dark: #3F9C43;
+  --green-light: #EAF8EC;
+
+  --gold: #D4AF37;
+
+  --border: #E5E7EB;
+
+  --cream: #FFFDF8;
 }
 
+
+/* =========================================================
+   2. GLOBAL RESET
+   ========================================================= */
+
 * {
+  box-sizing: border-box;
+
   scrollbar-width: thin;
-  scrollbar-color: #d7d2c4 transparent;
+  scrollbar-color: #D7D2C4 transparent;
 }
-*::-webkit-scrollbar { width: 6px; height: 6px; }
-*::-webkit-scrollbar-thumb { background: #d7d2c4; border-radius: 10px; }
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #D7D2C4;
+  border-radius: 10px;
+}
 
 html {
   scroll-behavior: smooth;
 }
 
 body {
-  font-family: 'Inter', system-ui, sans-serif;
-  background-color: #FFFDF8;
-  color: #111827;
+  margin: 0;
+
+  font-family:
+    'Inter',
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+
+  background-color: var(--cream);
+  color: var(--text);
 }
 
-/* Visible keyboard focus everywhere */
+
+/* =========================================================
+   3. ACCESSIBILITY / FOCUS
+   ========================================================= */
+
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid #234e25;
+  outline: 2px solid #234E25;
   outline-offset: 2px;
   border-radius: 8px;
 }
 
-/* Minimal glass hint used on floating/emphasis cards only */
+
+/* =========================================================
+   4. GLASS EFFECT
+   ========================================================= */
+
 .glass {
   background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(14px) saturate(140%);
-  -webkit-backdrop-filter: blur(14px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+
+  backdrop-filter:
+    blur(14px)
+    saturate(140%);
+
+  -webkit-backdrop-filter:
+    blur(14px)
+    saturate(140%);
+
+  border:
+    1px solid rgba(255, 255, 255, 0.6);
 }
 
-/* Fade-in page load */
+
+/* =========================================================
+   5. PAGE ANIMATION
+   ========================================================= */
+
 .page-enter {
-  animation: pageFade 480ms var(--ease) both;
+  animation:
+    pageFade 480ms var(--ease) both;
 }
+
 @keyframes pageFade {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
 }
+
+
+/* Staggered children */
 
 .stagger > * {
-  animation: pageFade 480ms var(--ease) both;
+  animation:
+    pageFade 480ms var(--ease) both;
 }
-.stagger > *:nth-child(1) { animation-delay: 40ms; }
-.stagger > *:nth-child(2) { animation-delay: 100ms; }
-.stagger > *:nth-child(3) { animation-delay: 160ms; }
-.stagger > *:nth-child(4) { animation-delay: 220ms; }
 
-/* Sidebar link hover slide */
-.nav-link {
-  transition: background-color 300ms var(--ease), color 300ms var(--ease), transform 300ms var(--ease);
+.stagger > *:nth-child(1) {
+  animation-delay: 40ms;
 }
+
+.stagger > *:nth-child(2) {
+  animation-delay: 100ms;
+}
+
+.stagger > *:nth-child(3) {
+  animation-delay: 160ms;
+}
+
+.stagger > *:nth-child(4) {
+  animation-delay: 220ms;
+}
+
+
+/* =========================================================
+   6. SIDEBAR NAVIGATION
+   ========================================================= */
+
+.nav-link {
+  transition:
+    background-color 300ms var(--ease),
+    color 300ms var(--ease),
+    transform 300ms var(--ease);
+}
+
 .nav-link:hover {
   transform: translateX(2px);
 }
 
-/* Button micro-interaction */
+
+/* =========================================================
+   7. BUTTON ANIMATION
+   ========================================================= */
+
 .btn-scale {
-  transition: transform 200ms var(--ease), background-color 300ms var(--ease), box-shadow 300ms var(--ease);
+  transition:
+    transform 200ms var(--ease),
+    background-color 300ms var(--ease),
+    box-shadow 300ms var(--ease);
 }
-.btn-scale:hover { transform: scale(1.03); }
-.btn-scale:active { transform: scale(0.98); }
 
-/* Search input glow on focus */
+.btn-scale:hover {
+  transform: scale(1.03);
+}
+
+.btn-scale:active {
+  transform: scale(0.98);
+}
+
+
+/* =========================================================
+   8. SEARCH SHELL
+   ========================================================= */
+
+/*
+ * Normal search bar.
+ *
+ * Before the first search this is the normal
+ * centered search bar near the top of the page.
+ */
+
 .search-shell {
-  transition: box-shadow 300ms var(--ease), border-color 300ms var(--ease);
+  transition:
+    border-color 220ms ease,
+    box-shadow 220ms ease;
 }
+
+
+/*
+ * Focus should NOT create a black border.
+ */
+
 .search-shell:focus-within {
-  box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.15), 0 10px 40px rgba(0,0,0,.08);
-  border-color: #144d16;
+  border-color: #D1D5DB !important;
+
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.06);
 }
 
-/* Recommendation card - subtle sticky-note lift on hover */
-.rec-card {
-  transition: transform 300ms var(--ease), box-shadow 300ms var(--ease), border-color 300ms var(--ease);
-}
-.rec-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 14px 34px rgba(0,0,0,.09);
+
+/*
+ * Search input itself.
+ */
+
+#homeSearchInput,
+#homeSearchInput:focus,
+#homeSearchInput:active {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
-.rec-alt {
-  opacity: 0.94;
-  background: rgba(255, 255, 255, 0.9);
+
+/* =========================================================
+   9. DISTILL SEARCH BAR POSITION
+   ========================================================= */
+
+
+/*
+ * INITIAL STATE
+ *
+ * Search bar appears at the top of the page.
+ */
+
+#topSearchArea {
+  width: 100%;
+  max-width: 720px;
+
+  margin-left: auto;
+  margin-right: auto;
+
+  margin-top: 2rem;
 }
 
-/* Mobile drawer */
+
+/*
+ * AFTER FIRST SUCCESSFUL SEARCH
+ *
+ * JavaScript adds:
+ *
+ *     search-bottom
+ *
+ * to #topSearchArea.
+ *
+ * The search bar then becomes fixed to the
+ * bottom of the viewport.
+ */
+
+#topSearchArea.search-bottom {
+  position: fixed;
+
+  left: 50%;
+  bottom: 20px;
+
+  transform: translateX(-50%);
+
+  width:
+    min(720px, calc(100vw - 32px));
+
+  margin: 0;
+
+  padding: 0;
+
+  z-index: 9999;
+}
+
+
+/*
+ * Make the actual search shell fill
+ * the fixed bottom container.
+ */
+
+#topSearchArea.search-bottom #searchBar {
+  width: 100%;
+}
+
+
+/*
+ * Prevent any parent layout from changing
+ * the fixed search bar width.
+ */
+
+#topSearchArea.search-bottom .search-shell {
+  width: 100%;
+}
+
+
+/* =========================================================
+   10. SEARCH BAR MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+  #topSearchArea {
+    max-width: 100%;
+  }
+
+  #topSearchArea.search-bottom {
+    width:
+      calc(100vw - 20px);
+
+    bottom: 10px;
+  }
+
+}
+
+
+/* =========================================================
+   11. MOBILE DRAWER
+   ========================================================= */
+
 #mobileDrawer {
-  transition: transform 320ms var(--ease);
-  transform: translateX(-100%);
+  transition:
+    transform 320ms var(--ease);
+
+  transform:
+    translateX(-100%);
 }
-#mobileDrawer.open { transform: translateX(0); }
+
+#mobileDrawer.open {
+  transform:
+    translateX(0);
+}
+
 #drawerOverlay {
   opacity: 0;
+
   pointer-events: none;
-  transition: opacity 300ms var(--ease);
+
+  transition:
+    opacity 300ms var(--ease);
 }
+
 #drawerOverlay.open {
   opacity: 1;
   pointer-events: auto;
 }
 
-/* Typing indicator dots for AI response animation */
+
+/* =========================================================
+   12. AI TYPING INDICATOR
+   ========================================================= */
+
 .typing-dot {
-  animation: typingBounce 1.2s infinite ease-in-out;
+  animation:
+    typingBounce 1.2s infinite ease-in-out;
 }
-.typing-dot:nth-child(2) { animation-delay: 0.15s; }
-.typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+.typing-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.typing-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
 @keyframes typingBounce {
-  0%, 60%, 100% { transform: translateY(0); opacity: .5; }
-  30% { transform: translateY(-4px); opacity: 1; }
-}
-/* Added to css/styles.css */
 
-/* Card Flip */
-.flip-card {
-  perspective: 1000px;
-  position: relative;
-  min-height: 240px;
-}
-.flip-card-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  transform-style: preserve-3d;
-}
-.flip-card.flipped .flip-card-inner {
-  transform: rotateY(180deg);
-}
-.flip-card-front, .flip-card-back {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  backface-visibility: hidden;
-  border-radius: 20px;
-}
-.flip-card-back {
-  transform: rotateY(180deg);
-  background: #fff;
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #E5E7EB;
-}
-
-/* Star rating inputs */
-.star-rating {
-  display: flex;
-  flex-direction: row-reverse;
-  justify-content: center;
-  gap: 0.25rem;
-}
-.star-rating input {
-  display: none;
-}
-.star-rating label {
-  font-size: 2rem;
-  color: #d1d5db;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-.star-rating input:checked ~ label,
-.star-rating label:hover,
-.star-rating label:hover ~ label {
-  color: #f59e0b;
-}
-
-/* Spinner */
-.spinner {
-  border: 3px solid #EAF8EC;
-  border-top-color: #a2eea5;
-  border-radius: 50%;
-  animation: spin 800ms linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-/* Landing page: sliding left-to-right "why Distill" ticker */
-.marquee-shell {
-  overflow: hidden;
-}
-.marquee-track {
-  animation: marqueeScroll 22s linear infinite;
-}
-.marquee-shell:hover .marquee-track {
-  animation-play-state: paused;
-}
-@keyframes marqueeScroll {
-  from { transform: translateX(-50%); }
-  to { transform: translateX(0); }
-}
-
-/* Reduced motion respect */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
   }
+
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+
 }
-/* =========================================
-   RECOMMENDATION CARD HEIGHT FIX
-   ========================================= */
+
+
+/* =========================================================
+   13. LEGACY RECOMMENDATION CARD
+   =========================================================
+ *
+ * These styles are kept for older .rec-card /
+ * .flip-card markup elsewhere in the project.
+ *
+ * The newer recommendation-card component uses
+ * recommendation-card.css and .rcard-* classes.
+ */
+
+
+/* Card */
 
 .rec-card {
-  cursor: pointer;
   position: relative;
+
   width: 100%;
   height: 410px;
+
   min-height: 410px;
+
   box-sizing: border-box;
+
+  cursor: pointer;
+
+  transition:
+    transform 300ms var(--ease),
+    box-shadow 300ms var(--ease),
+    border-color 300ms var(--ease);
 }
 
-/* Flip container must have exactly the same height */
-.rec-card .flip-card-inner {
-  position: relative;
-  width: 100%;
-  height: 100%;
+.rec-card:hover {
+  transform: translateY(-4px);
+
+  box-shadow:
+    0 14px 34px rgba(0, 0, 0, 0.09);
+}
+
+
+/* Alternative card */
+
+.rec-alt {
+  height: 410px;
   min-height: 410px;
+
+  opacity: 0.94;
+
+  background:
+    rgba(255, 255, 255, 0.9);
 }
 
-/* Both faces use the full available height */
-.rec-card .flip-card-front,
-.rec-card .flip-card-back {
-  width: 100%;
-  height: 100%;
-  min-height: 410px;
-  box-sizing: border-box;
-}
 
-/* Front content */
-.rec-card .flip-card-front {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Don't allow long text to push layout sideways */
-.rec-card .tool-description {
-  overflow-wrap: anywhere;
-  word-break: normal;
-}
-
-/* Pros / cons */
-.rec-card .tool-pros,
-.rec-card .tool-cons {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* Keep footer visible at bottom */
-.rec-card .flip-card-front > div:last-child {
-  margin-top: auto;
-  flex-shrink: 0;
-}
-
-/* Links/buttons stay inside card */
-.rec-card .tool-link,
-.rec-card button {
-  flex-shrink: 0;
-}
-
-/* =========================================
-   MAIN RECOMMENDATION
-   ========================================= */
+/* Main recommendation */
 
 .rec-main-card {
   height: 440px;
   min-height: 440px;
 }
+
+
+/* Flip card */
+
+.flip-card {
+  position: relative;
+
+  width: 100%;
+  min-height: 240px;
+
+  perspective: 1000px;
+}
+
+.flip-card-inner {
+  position: relative;
+
+  width: 100%;
+  height: 100%;
+
+  transform-style: preserve-3d;
+
+  transition:
+    transform 0.6s
+    cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.flip-card.flipped .flip-card-inner {
+  transform:
+    rotateY(180deg);
+}
+
+
+/* Flip faces */
+
+.flip-card-front,
+.flip-card-back {
+  position: absolute;
+
+  width: 100%;
+  height: 100%;
+
+  backface-visibility: hidden;
+
+  -webkit-backface-visibility: hidden;
+
+  border-radius: 20px;
+}
+
+
+/* Legacy front */
+
+.rec-card .flip-card-front {
+  display: flex;
+
+  flex-direction: column;
+
+  box-sizing: border-box;
+
+  min-height: 410px;
+}
+
+
+/* Legacy back */
+
+.flip-card-back {
+  transform:
+    rotateY(180deg);
+
+  background: #FFFFFF;
+
+  padding: 1.5rem;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  border:
+    1px solid #E5E7EB;
+
+  box-sizing: border-box;
+}
+
+
+/* Legacy main card flip sizing */
 
 .rec-main-card .flip-card-inner,
 .rec-main-card .flip-card-front,
@@ -289,14 +544,8 @@ input:focus-visible,
   min-height: 440px;
 }
 
-/* =========================================
-   ALTERNATIVE CARDS
-   ========================================= */
 
-.rec-alt {
-  height: 410px;
-  min-height: 410px;
-}
+/* Legacy alternative card flip sizing */
 
 .rec-alt .flip-card-inner,
 .rec-alt .flip-card-front,
@@ -305,9 +554,145 @@ input:focus-visible,
   min-height: 410px;
 }
 
-/* =========================================
-   MOBILE
-   ========================================= */
+
+/* Long text protection */
+
+.rec-card .tool-description {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+
+/* Pros */
+
+.rec-card .tool-pros {
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+}
+
+
+/* Cons */
+
+.rec-card .tool-cons {
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+}
+
+
+/* Legacy card footer */
+
+.rec-card .flip-card-front > div:last-child {
+  margin-top: auto;
+
+  flex-shrink: 0;
+}
+
+
+/* Keep links/buttons inside */
+
+.rec-card .tool-link,
+.rec-card button {
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   14. LEGACY STAR RATING
+   ========================================================= */
+
+.star-rating {
+  display: flex;
+
+  flex-direction: row-reverse;
+
+  justify-content: center;
+
+  gap: 0.25rem;
+}
+
+.star-rating input {
+  display: none;
+}
+
+.star-rating label {
+  font-size: 2rem;
+
+  color: #D1D5DB;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s;
+}
+
+.star-rating input:checked ~ label,
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+  color: #F59E0B;
+}
+
+
+/* =========================================================
+   15. SPINNER
+   ========================================================= */
+
+.spinner {
+  border:
+    3px solid var(--green-light);
+
+  border-top-color:
+    #A2EEA5;
+
+  border-radius: 50%;
+
+  animation:
+    spin 800ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* =========================================================
+   16. MARQUEE
+   ========================================================= */
+
+.marquee-shell {
+  overflow: hidden;
+}
+
+.marquee-track {
+  animation:
+    marqueeScroll 22s linear infinite;
+}
+
+.marquee-shell:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+@keyframes marqueeScroll {
+
+  from {
+    transform: translateX(-50%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+
+}
+
+
+/* =========================================================
+   17. MOBILE LEGACY CARDS
+   ========================================================= */
 
 @media (max-width: 640px) {
 
@@ -327,4 +712,56 @@ input:focus-visible,
     min-height: 460px;
   }
 
+}
+
+
+/* =========================================================
+   18. REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+
+    animation-iteration-count: 1 !important;
+
+    transition-duration: 0.001ms !important;
+
+    scroll-behavior: auto !important;
+  }
+
+}
+/* =========================================================
+   BOTTOM SEARCH - KEEP RESULTS ABOVE IT
+   ========================================================= */
+
+/*
+ * When the search bar is fixed at the bottom,
+ * reserve enough space so the last cards can scroll
+ * completely above it.
+ */
+#topSearchArea.search-bottom {
+  position: fixed !important;
+
+  left: 50% !important;
+  bottom: 20px !important;
+
+  transform: translateX(-50%) !important;
+
+  width: min(720px, calc(100vw - 32px)) !important;
+
+  margin: 0 !important;
+
+  z-index: 9999 !important;
+}
+
+
+/*
+ * Add bottom space to the results.
+ */
+#resultsBlocks {
+  padding-bottom: 120px;
 }

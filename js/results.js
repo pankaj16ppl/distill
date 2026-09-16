@@ -1,5 +1,3 @@
-// js/results.js
-
 function mapDbToolToCard(tool) {
   const pricingMap = {
     Free: "free",
@@ -35,6 +33,17 @@ function mapDbToolToCard(tool) {
     url: tool.official_website || "#",
 
     logo_url: tool.logo_url || "",
+
+    livePlans: Array.isArray(tool.live_plans)
+      ? tool.live_plans
+      : [],
+
+    liveFeatures: Array.isArray(tool.live_features)
+      ? tool.live_features
+      : [],
+
+    sourceStatus: tool.source_status || "unknown",
+    sourceLastSuccess: tool.last_success_at || null,
   };
 }
 
@@ -112,7 +121,7 @@ console.log("✅ Display query:", displayQuery);
     const cardTools = dbTools.map(mapDbToolToCard);
 
     console.log("✅ Mapped card tools:", cardTools);
-
+    console.log("BEFORE RENDER CARD TOOL:", cardTools[0]);
     renderRecommendationCards(
       resultsBlocks,
       cardTools

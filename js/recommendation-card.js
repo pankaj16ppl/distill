@@ -132,11 +132,243 @@
     return "";
   }
 }
+function getUsageInfo(tool) {
+
+  const livePlans =
+    Array.isArray(tool.livePlans)
+      ? tool.livePlans
+      : Array.isArray(tool.live_plans)
+        ? tool.live_plans
+        : [];
+
+  const liveFeatures =
+    Array.isArray(tool.liveFeatures)
+      ? tool.liveFeatures
+      : Array.isArray(tool.live_features)
+        ? tool.live_features
+        : [];
+
+  const items = [
+    ...livePlans,
+    ...liveFeatures
+  ];
+
+
+  // ------------------------------------------------------------
+  // Convert values to clean text
+  // ------------------------------------------------------------
+
+  const cleanValue = (value) => {
+
+    if (
+      value === null ||
+      value === undefined
+    ) {
+      return "";
+    }
+
+    if (typeof value === "string") {
+      return value.trim();
+    }
+
+    if (
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
+      return String(value);
+    }
+
+    return "";
+  };
+
+
+  // ------------------------------------------------------------
+  // Check whether a value is actually available
+  // ------------------------------------------------------------
+
+  const isAvailable = (value) => {
+
+    const text = cleanValue(value);
+
+    if (!text) {
+      return false;
+    }
+
+    const normalized =
+      text.toLowerCase();
+
+    return (
+      normalized !== "not available" &&
+      normalized !== "n/a" &&
+      normalized !== "na" &&
+      normalized !== "unknown"
+    );
+  };
+
+
+  // ------------------------------------------------------------
+  // 1. CREDITS
+  // ------------------------------------------------------------
+
+  for (const item of items) {
+
+    if (
+      item &&
+      isAvailable(item.credits)
+    ) {
+
+      return {
+        label: "Credits",
+        value: cleanValue(item.credits)
+      };
+
+    }
+  }
+
+
+  // ------------------------------------------------------------
+  // 2. TOKENS
+  // ------------------------------------------------------------
+
+  for (const item of items) {
+
+    if (
+      item &&
+      isAvailable(item.tokens)
+    ) {
+
+      return {
+        label: "Tokens",
+        value: cleanValue(item.tokens)
+      };
+
+    }
+  }
+
+
+  // ------------------------------------------------------------
+  // 3. HOURS
+  // ------------------------------------------------------------
+
+  for (const item of items) {
+
+    if (
+      item &&
+      isAvailable(item.hours)
+    ) {
+
+      return {
+        label: "Usage",
+        value: cleanValue(item.hours)
+      };
+
+    }
+  }
+
+
+  // ------------------------------------------------------------
+  // 4. MINUTES
+  // ------------------------------------------------------------
+
+  for (const item of items) {
+
+    if (
+      item &&
+      isAvailable(item.minutes)
+    ) {
+
+      return {
+        label: "Usage",
+        value: cleanValue(item.minutes)
+      };
+
+    }
+  }
+
+
+  // ------------------------------------------------------------
+  // No structured usage data
+  // ------------------------------------------------------------
+
+  return null;
+}
+
   function cardMarkup(tool, isMain) {
+console.log("========== DISTILL CARD DATA ==========");
+console.log("TOOL:", tool);
+console.log("PROS:", tool.pros);
+console.log("CONS:", tool.cons);
+console.log("PROS_LIST:", tool.pros_list);
+console.log("CONS_LIST:", tool.cons_list);
+console.log("LIVE_FEATURES:", tool.live_features);
+console.log("LIVE_PLANS:", tool.live_plans);
+console.log("======================================");
     const cardId = uid("rcard");
     const groupName = `${cardId}-stars`;
     const pricing = tool.pricing || "hybrid";
     const proCount = PROS_CONS_COUNT;
+    // ── Live verified data ───────────────────────────────────────────────
+// Backend may return snake_case (live_features/live_plans)
+// or camelCase (liveFeatures/livePlans), so support both.
+
+const liveFeatures = Array.isArray(tool.liveFeatures)
+  ? tool.liveFeatures
+  : Array.isArray(tool.live_features)
+    ? tool.live_features
+    : [];
+
+const livePlans = Array.isArray(tool.livePlans)
+  ? tool.livePlans
+  : Array.isArray(tool.live_plans)
+    ? tool.live_plans
+    : [];
+    console.log("CARD LIVE PLANS:", livePlans);
+
+// Show up to 3 verified features on the card.
+const verifiedFeatures = liveFeatures
+  .filter((feature) => feature && (feature.feature_name || feature.description))
+  .slice(0, 3);
+
+// Prefer real live_plans.
+// If live_plans is empty, derive unique plan names from the
+// verified features because those features already contain plan_name.
+const planSource = livePlans.length
+  ? livePlans
+  : liveFeatures;
+
+const verifiedPlans = [
+  ...new Map(
+    planSource
+      .filter((item) => item && item.plan_name)
+      .map((item) => [
+        String(item.plan_name).toLowerCase(),
+        item
+      ])
+  ).values()
+].slice(0, 3);
+
+// Support both backend/frontend naming for pros and cons.
+const pros =
+  Array.isArray(tool.pros) ? tool.pros :
+  Array.isArray(tool.pros_list) ? tool.pros_list :
+  Array.isArray(tool.prosList) ? tool.prosList :
+  [];
+
+const cons =
+  Array.isArray(tool.cons) ? tool.cons :
+  Array.isArray(tool.cons_list) ? tool.cons_list :
+  Array.isArray(tool.consList) ? tool.consList :
+  [];
+
+console.log("CARD NORMALIZED LIVE DATA:", {
+  name: tool.name || tool.tool_name,
+  liveFeatures,
+  livePlans,
+  verifiedFeatures,
+  verifiedPlans,
+  pros,
+  cons
+});
 
     // Radio inputs are placed BEFORE their label (reverse row via CSS is
     // avoided for simplicity — see the ~ sibling hover rule in the CSS)
@@ -176,11 +408,18 @@
         >`
       : ""
   }
-  <span class="rcard-logo-fallback">
-    ${escapeHtml((tool.name || "?")[0])}
+  ${tool.logo_url ? `
+  <span class="rcard-logo">
+    <img
+      src="${escapeHtml(tool.logo_url)}"
+      alt="${escapeHtml(tool.name || "")} logo"
+      loading="lazy"
+      onerror="this.closest('.rcard-logo')?.remove()"
+    >
   </span>
-</span>
-                <div class="rcard-titles" style="min-width:0">
+` : ""}
+
+<div class="rcard-titles" style="min-width:0">
                   <p class="rcard-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(tool.name)}</p>
                   <p class="rcard-category">${escapeHtml(tool.category || "")}</p>
                 </div>
@@ -189,18 +428,123 @@
             </div>
 
             <p class="rcard-description">${escapeHtml(truncate(tool.description || "", DESCRIPTION_MAX_CHARS))}</p>
+            ${`
+  <div class="rcard-info-grid">
 
-            <div class="rcard-proscons">
-              <div>
-                <h4 style="color:var(--rcard-green-dark)">Pros</h4>
-                <ul>${(tool.pros || []).slice(0, proCount).map((p) => `<li>· ${escapeHtml(p)}</li>`).join("")}</ul>
-              </div>
-              <div>
-                <h4 style="color:var(--rcard-paid)">Cons</h4>
-                <ul>${(tool.cons || []).slice(0, proCount).map((c) => `<li>· ${escapeHtml(c)}</li>`).join("")}</ul>
-              </div>
+    <div class="rcard-info-section">
+      <h4>Best for</h4>
+      <ul>
+        ${
+          tool.best_use_cases
+            ? `<li>${escapeHtml(tool.best_use_cases)}</li>`
+            : `<li>Not available</li>`
+        }
+      </ul>
+    </div>
+
+    <div class="rcard-info-section">
+      <h4>Pros</h4>
+      <ul>
+        ${
+          pros.length
+            ? pros
+                .slice(0, PROS_CONS_COUNT)
+                .map(item => `<li>${escapeHtml(item)}</li>`)
+                .join("")
+            : `<li>Not available</li>`
+        }
+      </ul>
+    </div>
+
+    <div class="rcard-info-section">
+      <h4>Cons</h4>
+      <ul>
+        ${
+          cons.length
+            ? cons
+                .slice(0, PROS_CONS_COUNT)
+                .map(item => `<li>${escapeHtml(item)}</li>`)
+                .join("")
+            : `<li>Not available</li>`
+        }
+      </ul>
+    </div>
+
+  </div>
+`}
+
+${
+  verifiedFeatures.length
+    ? `
+      <div class="rcard-live-data">
+
+        <div class="rcard-live-section">
+          <h4>Verified features</h4>
+          <ul>
+            ${verifiedFeatures
+              .map(
+                (feature) =>
+                  `<li>${escapeHtml(
+                    feature.feature_name || feature.description || ""
+                  )}</li>`
+              )
+              .join("")}
+          </ul>
+        </div>
+
+        <span class="rcard-live-verified">
+          ✓ Verified from official source
+        </span>
+
+      </div>
+    `
+    : ""
+}
+${
+  livePlans.length > 0
+    ? `
+      <div class="rcard-live-section">
+        <h4>Current Pricing</h4>
+
+        <div class="rcard-plan-list">
+          ${livePlans.slice(0, 3).map((plan) => `
+            <div class="rcard-plan">
+              <span class="rcard-plan-name">
+                ${escapeHtml(plan.plan_name || "Plan")}
+              </span>
+
+              <span class="rcard-plan-price">
+                ${escapeHtml(plan.price || "Not publicly specified")}
+              </span>
             </div>
+          `).join("")}
+        </div>
+      </div>
+    `
+    : ""
+}
 
+${
+  (() => {
+    const usage = getUsageInfo(tool);
+
+    if (!usage) {
+      return `
+        <div class="rcard-usage">
+          <span class="rcard-usage-label">Usage</span>
+          <span class="rcard-usage-value">Not available</span>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="rcard-usage">
+        <span class="rcard-usage-label">${escapeHtml(usage.label)}</span>
+        <span class="rcard-usage-value">${escapeHtml(usage.value)}</span>
+      </div>
+    `;
+  })()
+}
             <div class="rcard-footer">
               <div class="rcard-meta-row">
                 <button type="button" class="rcard-rating-trigger" data-action="flip" aria-label="Rate ${escapeHtml(tool.name)}, opens the 5-star rating input">
@@ -208,7 +552,6 @@
                   <span class="rcard-rating-value">${tool.rating ? Number(tool.rating).toFixed(1) : "—"}</span>
                   <span class="rcard-rating-count" style="white-space:nowrap">(<span data-role="count">…</span> rated)</span>
                 </button>
-                <span class="rcard-credits">${escapeHtml(tool.credits || "No free credits")}</span>
               </div>
               <div class="rcard-actions">
                 <a href="${escapeHtml(tool.url || "#")}" target="_blank" rel="noopener" class="rcard-btn rcard-btn--primary">
@@ -427,6 +770,7 @@
   function renderRecommendationCards(container, tools) {
     if (!container) return;
     const list = Array.isArray(tools) ? tools.slice(0, 8) : [];
+    console.log("RENDER LIST FIRST TOOL:", list[0]);
 
     // All cards — the highlighted pick and every alternative — render into
     // ONE grid (.rcard-row) so they're always equal width/height and the
@@ -466,3 +810,4 @@
   window.renderRecommendationCards = renderRecommendationCards;
   window.renderRecommendationSkeleton = renderRecommendationSkeleton;
 })();
+

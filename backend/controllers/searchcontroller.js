@@ -1,8 +1,14 @@
 const searchModel = require("../models/searchmodel");
 const ai = require("../config/gemini");
+const toolModel = require("../models/toolmodel");
+    const {
+    fetchLivePricingBatch
+} = require("../services/geminiPricingService");
 
 const searchTools = async (req, res) => {
+
     try {
+
         const { q } = req.query;
 
         if (!q || q.trim() === "") {
@@ -13,44 +19,108 @@ const searchTools = async (req, res) => {
         }
 
         const originalQuery = q.trim();
+
         let searchTerms = [];
+        let searchCategory = null;
+        let searchSubcategory = null;
+
+
+        // ============================================================
+        // QUERY UNDERSTANDING
+        // ============================================================
 
         try {
-           const prompt = `
-You are the query-understanding layer for Distill, an AI tool discovery platform.
 
-Your job is to understand what the user is trying to accomplish and convert the request into useful concepts for searching an AI-tool database.
+            const prompt = `
+You are the query-understanding layer for Distill.
+
+Your job is ONLY to classify the user's search query into the
+existing categories and subcategories used by the database.
+
+Do NOT select tools.
+Do NOT recommend applications.
+Do NOT invent categories.
+
+Existing categories:
+
+AI & Automation
+AI Chatbots & Assistants
+Coding & Developer Tools
+Creative
+Developer Tools
+Education - Accessibility
+Education - Engagement
+Education - Grading & Assessment
+Education - Lesson Planning
+Education - STEM
+Health & Fitness
+Image & Design
+Other Niche Tools
+Presentations & Diagrams
+Productivity & Automation
+Research
+Research & Knowledge
+Video & Audio
+
+Examples of existing subcategories:
+
+Food & Cooking
+Travel
+Home & DIY
+Fashion & Beauty
+Pets
+Parenting
+Relationships
+Spirituality
+Automotive
+Mental Health
+Nutrition
+Workout Plans
+AI Search
+Second Brain
+Source-grounded
+Meeting Notetaker
+Meeting Transcription
+Notes & Docs
+Workflow Automation
+AI Presentations
+Smart Slides
+Text-to-Visual
+Image Generation
+Design Suite
+Free Alternative
+AI IDE
+Cloud IDE
+Code Completion
+Privacy-focused
+and other subcategories already stored in the database.
 
 USER QUERY:
 ${originalQuery}
 
+Determine:
+
+1. category
+2. subcategory
+3. keywords
+
 Rules:
-1. Understand the user's intended task, not just the exact words.
-2. Understand English, Hinglish, informal language, abbreviations, and common spelling mistakes.
-3. Infer the actual task or goal from the complete sentence.
-4. Generate concise concepts that could realistically appear in an AI-tool database.
-5. Include task type, category, use case, and useful synonyms when relevant.
-6. Do NOT recommend tools.
-7. Do NOT invent tool names.
-8. NEVER copy the user's original query, sentence, phrase, or any part of it as a search term.
-9. If the user's query contains informal, Hinglish, abbreviated, or misspelled wording, normalize its meaning into standard search concepts instead of returning the original wording.
-10. Do NOT use the user's entire sentence as a search term.
-11. Do NOT return generic words such as "AI", "tool", "help", or "best".
-12. Return 3 to 8 useful search terms.
-13. The search terms must describe the user's intended task, not the wording of the request.
-14. Work dynamically for ANY user task or use case. Do not assume a fixed list of tasks, categories, languages, or output types.
-15. Generate search concepts that are useful for matching tools in the database, even when the user's wording is unusual or incomplete.
-16. Return valid JSON only.
-17. Before returning the final JSON, verify every search term. If any term is copied from the USER QUERY or contains the user's original wording, remove it and replace it with a newly generated normalized concept.
-18. The final search_terms array must contain only normalized concepts, categories, use cases, or synonyms suitable for database matching. Never include raw user input.
+- Use an existing category whenever possible.
+- Use an existing subcategory whenever possible.
+- For a query like "cooking" use:
+  category = "Other Niche Tools"
+  subcategory = "Food & Cooking"
+- For a query like "recipe maker" also prefer Food & Cooking.
+- Keywords should contain the important concepts from the query.
+- Return only JSON.
+- Do not explain your answer.
 
 Return exactly:
+
 {
-  "search_terms": [
-    "concept 1",
-    "concept 2",
-    "concept 3"
-  ]
+  "category": "existing category",
+  "subcategory": "existing subcategory or null",
+  "keywords": ["keyword1", "keyword2", "keyword3"]
 }
 `;
 
@@ -66,51 +136,339 @@ Return exactly:
 
             const parsed = JSON.parse(text);
 
-            if (Array.isArray(parsed.search_terms)) {
-                searchTerms = parsed.search_terms
-                    .filter(term => typeof term === "string")
-                    .map(term => term.trim().toLowerCase())
-                    .filter(Boolean)
-                    .slice(0, 8);
-            }
+            searchCategory =
+                typeof parsed.category === "string"
+                    ? parsed.category.trim()
+                    : null;
+
+            searchSubcategory =
+                typeof parsed.subcategory === "string"
+                    ? parsed.subcategory.trim()
+                    : null;
+
+            searchTerms =
+                Array.isArray(parsed.keywords)
+                    ? parsed.keywords
+                        .filter(
+                            term =>
+                                typeof term === "string"
+                        )
+                        .map(
+                            term =>
+                                term.trim().toLowerCase()
+                        )
+                        .filter(Boolean)
+                        .slice(0, 6)
+                    : [];
 
         } catch (error) {
+
             console.error(
                 "Search intent understanding failed:",
                 error.message
             );
+
+            searchCategory = null;
+            searchSubcategory = null;
+
+            searchTerms =
+                originalQuery
+                    .toLowerCase()
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .slice(0, 6);
         }
-if (!searchTerms.length) {
-    return res.status(500).json({
-        success: false,
-        message: "Could not understand search query"
-    });
-}
 
-        console.log("Original query:", originalQuery);
-        console.log("Search terms:", searchTerms);
 
-       const tools = await searchModel.searchTools(searchTerms);
+        // ============================================================
+        // VALIDATE SEARCH TERMS
+        // ============================================================
 
-       const displayQuery = searchTerms[0] || originalQuery;
+        if (!searchTerms.length) {
 
-res.json({
-    success: true,
-    count: tools.length,
-    originalQuery,
-    displayQuery,
-    data: tools
-});
+            return res.status(500).json({
+                success: false,
+                message: "Could not understand search query"
+            });
+
+        }
+
+
+        // ============================================================
+        // SEARCH DEBUG
+        // ============================================================
+
+        console.log(
+            "Original query:",
+            originalQuery
+        );
+
+        console.log(
+            "Search category:",
+            searchCategory
+        );
+
+        console.log(
+            "Search subcategory:",
+            searchSubcategory
+        );
+
+        console.log(
+            "Search keywords:",
+            searchTerms
+        );
+
+
+        // ============================================================
+        // DATABASE SEARCH
+        // ============================================================
+
+        const tools =
+            await searchModel.searchTools(
+                searchTerms,
+                searchCategory,
+                searchSubcategory
+            );
+
+
+        console.log(
+            "Matched tools:",
+            tools.map(
+                tool => tool.tool_name
+            )
+        );
+
+
+       // ============================================================
+// LIVE PLAN CACHE + BATCH LIVE VERIFICATION
+//
+// Cache lifetime: 48 hours
+//
+// Fresh data:
+//      Use database.
+//
+// Missing/expired:
+//      Collect tool and verify all stale tools
+//      with ONE Gemini + Google Search request.
+// ============================================================
+
+const staleTools = [];
+
+
+// ============================================================
+// 1. CHECK 48-HOUR CACHE
+// ============================================================
+
+for (const tool of tools) {
+
+    try {
+
+        const cachedPlans =
+            await toolModel.getFreshToolPlans(
+                tool.id,
+                48
+            );
+
+        if (
+            Array.isArray(cachedPlans) &&
+            cachedPlans.length > 0
+        ) {
+
+            tool.live_plans = cachedPlans;
+            tool.pricing_status = "verified";
+
+            console.log(
+                `Using cached live data for ${tool.tool_name}:`,
+                tool.live_plans
+            );
+
+            continue;
+        }
+
+        console.log(
+            `Live data missing/expired for ${tool.tool_name}`
+        );
+
+        tool.live_plans = [];
+        tool.pricing_status = "not_available";
+
+        if (tool.official_website) {
+
+            staleTools.push(tool);
+
+        } else {
+
+            console.log(
+                `No official website for ${tool.tool_name}`
+            );
+
+        }
 
     } catch (error) {
-        console.error("Search Error:", error);
 
-        res.status(500).json({
-            success: false,
-            message: "Failed to search AI tools"
-        });
+        console.error(
+            `Cache check failed for ${tool.tool_name}:`,
+            error.message
+        );
+
+        tool.live_plans = [];
+        tool.pricing_status = "not_available";
+
+        if (tool.official_website) {
+            staleTools.push(tool);
+        }
     }
+}
+
+
+// ============================================================
+// 2. BATCH GEMINI + GOOGLE SEARCH
+// ============================================================
+
+if (staleTools.length > 0) {
+
+    console.log(
+        `Starting batch live pricing verification for ${staleTools.length} tools:`,
+        staleTools.map(tool => tool.tool_name)
+    );
+
+    try {
+
+        const batchResults =
+            await fetchLivePricingBatch(staleTools);
+
+
+        // --------------------------------------------------------
+        // Create lookup:
+        //
+        // tool_id → plans
+        // --------------------------------------------------------
+
+        const resultMap = new Map(
+            batchResults.map(result => [
+                Number(result.tool_id),
+                Array.isArray(result.plans)
+                    ? result.plans
+                    : []
+            ])
+        );
+
+
+        // --------------------------------------------------------
+        // 3. SAVE RESULT FOR EACH TOOL
+        // --------------------------------------------------------
+
+        for (const tool of staleTools) {
+
+            const plans =
+                resultMap.get(Number(tool.id)) || [];
+
+
+            if (
+                Array.isArray(plans) &&
+                plans.length > 0
+            ) {
+
+                await toolModel.replaceToolPlans({
+                    tool_id: tool.id,
+                    plans,
+                    source_url:
+                        plans[0].source_url ||
+                        tool.official_website ||
+                        null,
+                    last_verified_at: new Date()
+                });
+
+
+                tool.live_plans =
+                    await toolModel.getFreshToolPlans(
+                        tool.id,
+                        48
+                    );
+
+
+                console.log(
+                    `Saved fresh Gemini data for ${tool.tool_name}:`,
+                    tool.live_plans
+                );
+
+            } else {
+
+                tool.live_plans = [];
+
+                console.log(
+                    `No current verified pricing found for ${tool.tool_name}`
+                );
+            }
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Batch Gemini pricing failed:",
+            error.message
+        );
+
+
+        // --------------------------------------------------------
+        // Never invent pricing.
+        // --------------------------------------------------------
+
+        for (const tool of staleTools) {
+
+            tool.live_plans = [];
+
+        }
+    }
+}
+
+
+// ============================================================
+// RESPONSE
+// ============================================================
+
+const displayQuery =
+    searchTerms[0] || originalQuery;
+
+
+return res.json({
+
+    success: true,
+
+    count: tools.length,
+
+    originalQuery,
+
+    displayQuery,
+
+    data: tools
+
+});
+
+
+} catch (error) {
+
+    console.error(
+        "Search Error:",
+        error
+    );
+
+    return res.status(500).json({
+
+        success: false,
+
+        message: "Failed to search AI tools"
+
+    });
+
+}
+
 };
+
+
+// ============================================================
+// EXPORT
+// ============================================================
 
 module.exports = {
     searchTools
