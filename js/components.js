@@ -153,9 +153,7 @@ ${userCardMarkup(user, "sidebarLogout")}
         </button>
         <h1 class="text-base font-semibold">${PAGE_TITLES[active] || ""}</h1>
         <div class="ml-auto flex items-center gap-2 relative">
-          <button id="recentBtn" class="btn-scale w-9 h-9 rounded-lg flex items-center justify-center hover:bg-green-light text-muted" title="Recent searches">
-            <i data-lucide="clock" class="w-[18px] h-[18px]"></i>
-          </button>
+          
           <div id="recentDropdown" class="hidden absolute right-0 top-11 w-72 bg-white rounded-card border border-line shadow-card overflow-hidden z-30"></div>
           <a href="profile.html" class="w-9 h-9 rounded-full bg-green-light text-green-dark font-bold flex items-center justify-center text-sm shrink-0">${initial}</a>
         </div>
@@ -192,33 +190,7 @@ showMoreHistory?.addEventListener("click", () => {
 
   if (window.lucide) lucide.createIcons();
 });
-  // Recent-searches dropdown
-  const recentBtn = document.getElementById("recentBtn");
-  const recentDropdown = document.getElementById("recentDropdown");
-  recentBtn?.addEventListener("click", () => {
-    recentDropdown.innerHTML = historyPreviewMarkup();
-    recentDropdown.classList.toggle("hidden");
-    if (window.lucide) lucide.createIcons();
-   recentDropdown.querySelectorAll(".history-run").forEach((btn) => {
-  btn.addEventListener("click", () => {
-    const historyId = btn.dataset.historyId;
-
-    if (!historyId) {
-      console.error("❌ History ID missing");
-      return;
-    }
-
-    window.location.href =
-      `new-chat.html?historyId=${encodeURIComponent(historyId)}`;
-  });
-});
-  });
-  document.addEventListener("click", (e) => {
-    if (recentDropdown && !recentDropdown.contains(e.target) && e.target !== recentBtn && !recentBtn?.contains(e.target)) {
-      recentDropdown.classList.add("hidden");
-    }
-  });
-
+  
   // Logout (desktop + mobile sidebar)
   document.getElementById("sidebarLogout")?.addEventListener("click", logoutUser);
   document.getElementById("sidebarLogoutMobile")?.addEventListener("click", logoutUser);
