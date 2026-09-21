@@ -229,20 +229,79 @@ Return exactly:
                 searchCategory,
                 searchSubcategory
             );
+            let finalTools = tools;
 
+if (
+    finalTools.length === 0 &&
+    searchSubcategory
+) {
+    console.log(
+        `No tools found for subcategory "${searchSubcategory}". Retrying without subcategory...`
+    );
+
+    finalTools =
+        await searchModel.searchTools(
+            searchTerms,
+            searchCategory,
+            null
+        );
+}
+
+console.log(
+    "Matched tools:",
+    finalTools.map(tool => tool.tool_name)
+);
+
+        console.log("========== START LIVE PLAN CHECK ==========");
+console.log(
+    "TOOLS RECEIVED BY LIVE PLAN CHECK:",
+    finalTools.length
+);
+const staleTools = [];
+const staleToolIds = new Set();
+for (const tool of finalTools) {
+
+    const cachedPlans =
+        await toolModel.getFreshToolPlans(tool.id);
+
+    if (
+        Array.isArray(cachedPlans) &&
+        cachedPlans.length > 0
+    ) {
+        tool.live_plans = cachedPlans;
+        tool.pricing_status = "verified";
 
         console.log(
-            "Matched tools:",
-            tools.map(
-                tool => tool.tool_name
-            )
+            `Using database plans for ${tool.tool_name}:`,
+            cachedPlans
         );
 
+    } else {
+        tool.live_plans = [];
+        tool.pricing_status = "not_available";
+
+        if (tool.official_website) {
+            staleTools.push(tool);
+
+            console.log(
+                `No plan data in database for ${tool.tool_name}`
+            );
+        }
+    }
+}
+
+//
+// Existing plans:
+//      Use database, no Gemini.
+//
+// No plans:
+//      Add tool to staleTools for Gemini verification.
+//
+// No expiry check.
+// ============================================================
 
        // ============================================================
 // LIVE PLAN CACHE + BATCH LIVE VERIFICATION
-//
-// Cache lifetime: 48 hours
 //
 // Fresh data:
 //      Use database.
@@ -251,76 +310,6 @@ Return exactly:
 //      Collect tool and verify all stale tools
 //      with ONE Gemini + Google Search request.
 // ============================================================
-
-const staleTools = [];
-
-
-// ============================================================
-// 1. CHECK 48-HOUR CACHE
-// ============================================================
-
-for (const tool of tools) {
-
-    try {
-
-        const cachedPlans =
-            await toolModel.getFreshToolPlans(
-                tool.id,
-                48
-            );
-
-        if (
-            Array.isArray(cachedPlans) &&
-            cachedPlans.length > 0
-        ) {
-
-            tool.live_plans = cachedPlans;
-            tool.pricing_status = "verified";
-
-            console.log(
-                `Using cached live data for ${tool.tool_name}:`,
-                tool.live_plans
-            );
-
-            continue;
-        }
-
-        console.log(
-            `Live data missing/expired for ${tool.tool_name}`
-        );
-
-        tool.live_plans = [];
-        tool.pricing_status = "not_available";
-
-        if (tool.official_website) {
-
-            staleTools.push(tool);
-
-        } else {
-
-            console.log(
-                `No official website for ${tool.tool_name}`
-            );
-
-        }
-
-    } catch (error) {
-
-        console.error(
-            `Cache check failed for ${tool.tool_name}:`,
-            error.message
-        );
-
-        tool.live_plans = [];
-        tool.pricing_status = "not_available";
-
-        if (tool.official_website) {
-            staleTools.push(tool);
-        }
-    }
-}
-
-
 // ============================================================
 // 2. BATCH GEMINI + GOOGLE SEARCH
 // ============================================================
@@ -380,17 +369,12 @@ if (staleTools.length > 0) {
                 });
 
 
-                tool.live_plans =
-                    await toolModel.getFreshToolPlans(
-                        tool.id,
-                        48
-                    );
+                tool.live_plans = plans;
 
-
-                console.log(
-                    `Saved fresh Gemini data for ${tool.tool_name}:`,
-                    tool.live_plans
-                );
+console.log(
+    `Saved Gemini data for ${tool.tool_name}:`,
+    tool.live_plans
+);
 
             } else {
 
@@ -435,13 +419,11 @@ return res.json({
 
     success: true,
 
-    count: tools.length,
-
     originalQuery,
 
     displayQuery,
-
-    data: tools
+    count: finalTools.length,
+    data: finalTools
 
 });
 

@@ -261,63 +261,32 @@ console.log("=============================================");
         return scoredRows;
     }
 
-    /*
-     * Find the largest relative drop between consecutive scores.
-     * This makes the cutoff depend on the current search results,
-     * not on a specific task.
-     */
-    let bestCutIndex = scoredRows.length;
+// ---------------------------------------------------------
+// RETURN TOP MATCHING DATABASE TOOLS
+// ---------------------------------------------------------
+//
+// The SQL query already finds matching tools.
+// Keep the top 7 matches instead of cutting results
+// based on the largest score gap.
+// ---------------------------------------------------------
 
-    let largestRelativeDrop = 0;
+const relevantTools = scoredRows.slice(0, 7);
 
-    for (let i = 0; i < scoredRows.length - 1; i++) {
-        const currentScore = scoredRows[i].relevance_score;
-        const nextScore = scoredRows[i + 1].relevance_score;
+console.log(
+    "Dynamic search scores:",
+    scoredRows.map(tool => ({
+        name: tool.tool_name,
+        score: tool.relevance_score,
+        matched: tool.matched_keywords
+    }))
+);
 
-        if (currentScore <= 0) {
-            continue;
-        }
+console.log(
+    "Dynamic relevant tools:",
+    relevantTools.map(tool => tool.tool_name)
+);
 
-        const relativeDrop =
-            (currentScore - nextScore) / currentScore;
-
-        if (relativeDrop > largestRelativeDrop) {
-            largestRelativeDrop = relativeDrop;
-            bestCutIndex = i + 1;
-        }
-    }
-
-    /*
-     * If there is no meaningful separation, keep all candidates
-     * that have the same relevance level as the strongest group.
-     *
-     * This avoids arbitrarily deleting potentially relevant tools.
-     */
-    if (largestRelativeDrop === 0) {
-        const topScore = scoredRows[0].relevance_score;
-
-        return scoredRows.filter(
-            tool => tool.relevance_score === topScore
-        );
-    }
-
-    const relevantTools = scoredRows.slice(0, bestCutIndex);
-
-    console.log(
-        "Dynamic search scores:",
-        scoredRows.map(tool => ({
-            name: tool.tool_name,
-            score: tool.relevance_score,
-            matched: tool.matched_keywords
-        }))
-    );
-
-    console.log(
-        "Dynamic relevant tools:",
-        relevantTools.map(tool => tool.tool_name)
-    );
-
-    return relevantTools;
+return relevantTools;
 };
 
 module.exports = {

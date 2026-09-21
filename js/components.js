@@ -98,9 +98,9 @@ function renderShell(active) {
     sidebarRoot.innerHTML = `
       <aside class="hidden lg:flex w-64 shrink-0 flex-col border-r border-line bg-white h-screen sticky top-0 py-6 px-4">
         <a href="dashboard.html" class="flex items-center gap-2.5 px-2 mb-8">
-          <span class="w-9 h-9 rounded-xl bg-green flex items-center justify-center"><i data-lucide="sparkles" class="w-5 h-5 text-white"></i></span>
-          <span class="text-lg font-bold tracking-tight">Distill</span>
-        </a>
+  <img src="assets/distill-logo.png" alt="Distill" class="w-11 h-11 object-contain">
+  <span class="text-lg font-bold tracking-tight">Distill</span>
+</a>
         <nav class="flex-1 flex flex-col gap-1 overflow-y-auto">
   ${navLinksMarkup(active)}
 
@@ -134,9 +134,9 @@ ${userCardMarkup(user, "sidebarLogout")}
       <aside id="mobileDrawer" class="lg:hidden fixed top-0 left-0 h-screen w-64 bg-white z-40 flex flex-col py-6 px-4 shadow-xl">
         <div class="flex items-center justify-between px-2 mb-8">
           <a href="dashboard.html" class="flex items-center gap-2.5">
-            <span class="w-9 h-9 rounded-xl bg-green flex items-center justify-center"><i data-lucide="sparkles" class="w-5 h-5 text-white"></i></span>
-            <span class="text-lg font-bold tracking-tight">Distill</span>
-          </a>
+  <img src="assets/distill-logo.png" alt="Distill" class="w-11 h-11 object-contain">
+  <span class="text-lg font-bold tracking-tight">Distill</span>
+</a>
           <button id="drawerClose" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-cream"><i data-lucide="x" class="w-4 h-4"></i></button>
         </div>
         <nav class="flex-1 flex flex-col gap-1 overflow-y-auto">${navLinksMarkup(active)}</nav>

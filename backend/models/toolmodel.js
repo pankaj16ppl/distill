@@ -287,16 +287,15 @@ const replaceToolPlans = async ({
 
     }
 };
-const getFreshToolPlans = async (tool_id, hours = 24) => {
+const getFreshToolPlans = async (tool_id) => {
     const result = await pool.query(
         `
         SELECT *
         FROM tool_plans
         WHERE tool_id = $1
-          AND last_verified_at >= NOW() - ($2 * INTERVAL '1 hour')
         ORDER BY id
         `,
-        [tool_id, hours]
+        [tool_id]
     );
 
     return result.rows;

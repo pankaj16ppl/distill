@@ -1,78 +1,892 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Offers · Distill</title>
-<link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="js/tailwind-config.js"></script>
-<link rel="stylesheet" href="css/styles.css" />
-<script src="https://unpkg.com/lucide@latest"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <title>Offers · Distill</title>
+
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="js/tailwind-config.js"></script>
+
+  <link rel="stylesheet" href="css/styles.css" />
+
+  <script src="https://unpkg.com/lucide@latest"></script>
 </head>
+
 <body class="bg-cream text-ink antialiased">
 
   <div class="flex min-h-screen">
+
+    <!-- Sidebar -->
     <div id="sidebar-root"></div>
 
     <div class="flex-1 min-w-0 flex flex-col">
-      <header class="h-20 shrink-0 flex items-center px-6 lg:px-10 border-b border-line bg-cream/80 backdrop-blur sticky top-0 z-20">
+
+      <!-- Top navigation -->
+      <header
+        class="h-20 shrink-0 flex items-center px-6 lg:px-10
+               border-b border-line bg-cream/80 backdrop-blur
+               sticky top-0 z-20"
+      >
         <div id="topnav-root" class="w-full"></div>
       </header>
 
+      <!-- Main -->
       <main class="flex-1 px-6 lg:px-10 py-10 page-enter">
-        <div class="max-w-5xl mx-auto">
-          <div class="flex items-center gap-3 mb-1">
-            <span class="w-9 h-9 rounded-xl bg-green-light flex items-center justify-center">
-              <i data-lucide="tag" class="w-5 h-5 text-green-dark"></i>
-            </span>
-            <h1 class="text-2xl font-bold">Offers</h1>
-          </div>
-          <p class="text-muted mb-8">Free and low-cost tiers worth trying before you pay for anything.</p>
 
-          <div id="offersGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 stagger"></div>
+        <div class="max-w-6xl mx-auto">
+
+          <!-- Header -->
+          <div class="flex items-start justify-between gap-6 mb-8">
+
+            <div>
+
+              <div class="flex items-center gap-3 mb-2">
+
+                <span
+                  class="w-10 h-10 rounded-xl bg-green-light
+                         flex items-center justify-center"
+                >
+                  <i
+                    data-lucide="badge-percent"
+                    class="w-5 h-5 text-green-dark"
+                  ></i>
+                </span>
+
+                <div>
+                  <h1 class="text-2xl font-bold">
+                    Offers
+                  </h1>
+
+                  <p class="text-sm text-muted">
+                    Useful AI deals, student offers and free upgrades.
+                  </p>
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- Demo indicator -->
+            <span
+              class="hidden sm:inline-flex items-center gap-2
+                     px-3 py-1.5 rounded-full
+                     bg-amber-50 text-amber-700
+                     border border-amber-100
+                     text-xs font-semibold"
+            >
+              <i data-lucide="flask-conical" class="w-3.5 h-3.5"></i>
+              Demo data
+            </span>
+
+          </div>
+
+
+          <!-- Intro banner -->
+          <section
+            class="mb-8 rounded-2xl border border-green/10
+                   bg-gradient-to-r from-green-light to-white
+                   p-6"
+          >
+
+            <div
+              class="flex flex-col md:flex-row
+                     md:items-center md:justify-between gap-5"
+            >
+
+              <div class="flex items-start gap-4">
+
+                <div
+                  class="w-11 h-11 shrink-0 rounded-xl
+                         bg-green flex items-center justify-center"
+                >
+                  <i
+                    data-lucide="sparkles"
+                    class="w-5 h-5 text-white"
+                  ></i>
+                </div>
+
+                <div>
+
+                  <h2 class="font-bold text-lg">
+                    Don't pay before checking the deal.
+                  </h2>
+
+                  <p class="text-sm text-muted mt-1 max-w-2xl">
+                    Distill brings useful AI offers into one place so you
+                    can quickly compare free trials, student benefits,
+                    discounts and extra usage.
+                  </p>
+
+                </div>
+
+              </div>
+
+              <div
+                class="text-xs text-muted whitespace-nowrap"
+              >
+                6 offers available
+              </div>
+
+            </div>
+
+          </section>
+
+
+          <!-- Filters -->
+          <div class="flex flex-wrap items-center gap-2 mb-6">
+
+            <button
+              class="offer-filter active px-4 py-2 rounded-full
+                     text-xs font-semibold bg-green text-white"
+              data-filter="all"
+            >
+              All Offers
+            </button>
+
+            <button
+              class="offer-filter px-4 py-2 rounded-full
+                     text-xs font-semibold bg-white
+                     border border-line text-muted
+                     hover:bg-green-light"
+              data-filter="student"
+            >
+              Student
+            </button>
+
+            <button
+              class="offer-filter px-4 py-2 rounded-full
+                     text-xs font-semibold bg-white
+                     border border-line text-muted
+                     hover:bg-green-light"
+              data-filter="free"
+            >
+              Free
+            </button>
+
+            <button
+              class="offer-filter px-4 py-2 rounded-full
+                     text-xs font-semibold bg-white
+                     border border-line text-muted
+                     hover:bg-green-light"
+              data-filter="discount"
+            >
+              Discount
+            </button>
+
+          </div>
+
+
+          <!-- Offers -->
+          <div
+            id="offersGrid"
+            class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5"
+          ></div>
+
+
+          <!-- Disclaimer -->
+          <div
+            class="mt-8 flex items-start gap-3
+                   rounded-xl border border-line
+                   bg-white p-4"
+          >
+
+            <i
+              data-lucide="info"
+              class="w-4 h-4 text-muted shrink-0 mt-0.5"
+            ></i>
+
+            <p class="text-xs text-muted leading-relaxed">
+              <span class="font-semibold text-ink">
+                Hackathon prototype:
+              </span>
+              Offer information shown here is demonstration data based on
+              publicly advertised offer types. Availability, eligibility
+              and expiry dates should be verified on the official provider
+              page before claiming an offer.
+            </p>
+
+          </div>
+
         </div>
+
       </main>
 
+
+      <!-- Footer -->
       <div id="footer-root"></div>
+
     </div>
   </div>
 
+
+  <!-- Existing Distill scripts -->
   <script src="js/auth.js"></script>
   <script src="js/history.js"></script>
   <script src="js/components.js"></script>
-  <script src="js/tools-grid.js"></script>
+
+
   <script>
+
     requireAuth();
+
     renderShell("offers");
 
-    async function loadOffers() {
-      const grid = document.getElementById("offersGrid");
-      grid.innerHTML = `<p class="col-span-full text-center text-muted py-16">Loading offers…</p>`;
-      try {
-        const res = await fetch(`${API_BASE}/tools`);
-        const json = await res.json();
-        if (!json.success) throw new Error(json.message || "Failed to load tools");
+    /*
+     * ============================================================
+     * DISTILL OFFERS
+     * ============================================================
+     *
+     * IMPORTANT:
+     * This page intentionally does NOT use:
+     *
+     *     renderTrendingGrid()
+     *
+     * Therefore changes here do not affect Trending.
+     *
+     * These are hackathon demonstration records.
+     * ============================================================
+     */
 
-        // "Offer" = free or hybrid-pricing tools from Neon, newest first.
-        const deals = json.data
-          .filter((t) => {
-            const p = (t.pricing || "").toLowerCase();
-            return p === "free" || p === "hybrid" || p === "freemium";
-          })
-          .sort((a, b) => (b.id || 0) - (a.id || 0));
+    const offers = [
 
-        // renderTrendingGrid() already expects the exact ai_tools column
-        // names (tool_name, description, official_website, source), so it
-        // renders DB rows directly — no field mapping needed here.
-        renderTrendingGrid("offersGrid", deals);
-      } catch (error) {
-        console.error("Offers API error:", error);
-        grid.innerHTML = `<p class="col-span-full text-center text-muted py-16">Couldn't reach the server. Is the backend running on port 5000?</p>`;
-      }
+      {
+        id: 1,
+
+        name: "Gemini",
+
+        category: "AI Assistant",
+
+        badge: "STUDENT OFFER",
+
+        type: "student",
+
+        headline: "1 Year Free",
+
+        subheadline: "Google AI Plus",
+
+        description:
+          "Eligible students can access Google AI benefits through a student offer.",
+
+        eligibility:
+          "Eligible students",
+
+        validity:
+          "Check current eligibility",
+
+        source:
+          "Google",
+
+        icon:
+          "sparkles",
+
+        website:
+          "https://gemini.google.com"
+      },
+
+
+      {
+        id: 2,
+
+        name: "Otter.ai",
+
+        category: "Meeting & Notes",
+
+        badge: "STUDENT DEAL",
+
+        type: "student",
+
+        headline: "50% OFF",
+
+        subheadline: "Pro Annual",
+
+        description:
+          "Student-focused discount for Otter's annual Pro plan.",
+
+        eligibility:
+          "Student verification",
+
+        validity:
+          "Limited-time offer",
+
+        source:
+          "Otter.ai",
+
+        icon:
+          "mic",
+
+        website:
+          "https://otter.ai"
+      },
+
+
+      {
+        id: 3,
+
+        name: "Grammarly",
+
+        category: "Writing Assistant",
+
+        badge: "STUDENT DEAL",
+
+        type: "student",
+
+        headline: "50% OFF",
+
+        subheadline: "Grammarly Pro",
+
+        description:
+          "A student discount that can reduce the cost of Grammarly Pro.",
+
+        eligibility:
+          "Eligible students",
+
+        validity:
+          "Check current eligibility",
+
+        source:
+          "Grammarly",
+
+        icon:
+          "pen-line",
+
+        website:
+          "https://www.grammarly.com"
+      },
+
+
+      {
+        id: 4,
+
+        name: "GitHub Copilot",
+
+        category: "AI Coding",
+
+        badge: "FREE FOR STUDENTS",
+
+        type: "free",
+
+        headline: "FREE",
+
+        subheadline: "Student access",
+
+        description:
+          "Verified students can access Copilot benefits through GitHub Education.",
+
+        eligibility:
+          "Verified students",
+
+        validity:
+          "While eligible",
+
+        source:
+          "GitHub",
+
+        icon:
+          "code-2",
+
+        website:
+          "https://github.com/features/copilot"
+      },
+
+
+      {
+        id: 5,
+
+        name: "Notion",
+
+        category: "Productivity",
+
+        badge: "EDUCATION OFFER",
+
+        type: "student",
+
+        headline: "FREE PLUS",
+
+        subheadline: "For students",
+
+        description:
+          "Eligible students can access Notion's education offering.",
+
+        eligibility:
+          "Eligible education users",
+
+        validity:
+          "While eligible",
+
+        source:
+          "Notion",
+
+        icon:
+          "notebook-tabs",
+
+        website:
+          "https://www.notion.com/product/notion-for-education"
+      },
+
+
+      {
+        id: 6,
+
+        name: "ElevenLabs",
+
+        category: "Voice AI",
+
+        badge: "STUDENT OFFER",
+
+        type: "free",
+
+        headline: "1 YEAR FREE",
+
+        subheadline: "ElevenReader Ultra",
+
+        description:
+          "A student-focused offer providing access to ElevenReader Ultra.",
+
+        eligibility:
+          "Verified students",
+
+        validity:
+          "Check current eligibility",
+
+        source:
+          "ElevenLabs",
+
+        icon:
+          "volume-2",
+
+        website:
+          "https://elevenlabs.io/students"
+      },
+      {
+  name: "ElevenLabs",
+  badge: "STUDENT OFFER",
+  type: "free",
+  headline: "1 YEAR FREE",
+  subheadline: "ElevenReader Ultra",
+  description: "Student-focused offer providing access to ElevenReader Ultra.",
+  eligibility: "Verified students",
+  validity: "Check current eligibility",
+  source: "ElevenLabs",
+  icon: "volume-2",
+  website: "https://elevenlabs.io/students"
+},
+
+// ADD THE NEXT 6 HERE
+
+{
+  name: "Adobe",
+  badge: "STUDENT DISCOUNT",
+  type: "student",
+  headline: "UP TO 65% OFF",
+  subheadline: "Creative Cloud",
+  description: "Eligible students can access Adobe Creative Cloud at a reduced education price.",
+  eligibility: "Eligible students",
+  validity: "Check current eligibility",
+  source: "Adobe",
+  icon: "palette",
+  website: "https://www.adobe.com/creativecloud/buy/students.html"
+},
+
+{
+  name: "Canva",
+  badge: "EDUCATION",
+  type: "free",
+  headline: "FREE",
+  subheadline: "Canva for Education",
+  description: "Eligible education users can access Canva's education offering with premium features.",
+  eligibility: "Eligible students & educators",
+  validity: "While eligible",
+  source: "Canva",
+  icon: "layout-template",
+  website: "https://www.canva.com/education/"
+},
+
+{
+  name: "Figma",
+  badge: "STUDENT PLAN",
+  type: "free",
+  headline: "FREE",
+  subheadline: "Figma for Education",
+  description: "Eligible students can access Figma's education program for design and prototyping.",
+  eligibility: "Eligible students",
+  validity: "While eligible",
+  source: "Figma",
+  icon: "figma",
+  website: "https://www.figma.com/education/"
+},
+
+{
+  name: "Microsoft Copilot",
+  badge: "STUDENT ACCESS",
+  type: "free",
+  headline: "FREE",
+  subheadline: "AI tools for students",
+  description: "Students can access Microsoft's education ecosystem and eligible AI capabilities.",
+  eligibility: "Eligible students",
+  validity: "Check current eligibility",
+  source: "Microsoft",
+  icon: "bot",
+  website: "https://www.microsoft.com/en-us/education/products/office-365-education"
+},
+
+{
+  name: "JetBrains AI",
+  badge: "STUDENT OFFER",
+  type: "student",
+  headline: "FREE",
+  subheadline: "Student Pack",
+  description: "Verified students can access JetBrains educational benefits for development tools.",
+  eligibility: "Verified students",
+  validity: "While eligible",
+  source: "JetBrains",
+  icon: "code",
+  website: "https://www.jetbrains.com/community/education/"
+},
+
+{
+  name: "Amazon Q Developer",
+  badge: "FREE TIER",
+  type: "free",
+  headline: "FREE",
+  subheadline: "Developer AI",
+  description: "Developers can use Amazon Q Developer with a free tier for AI-assisted development.",
+  eligibility: "Developers",
+  validity: "Check current limits",
+  source: "AWS",
+  icon: "terminal",
+  website: "https://aws.amazon.com/q/developer/"
+}
+];
+        
+
+    /*
+     * Escape user/data content before inserting into HTML.
+     */
+    function escapeOfferHtml(value) {
+
+      return String(value ?? "").replace(/[&<>"']/g, (char) => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[char]));
+
     }
 
-    loadOffers();
+
+    /*
+     * Creates one offer card.
+     */
+    function createOfferCard(offer) {
+
+      return `
+
+        <article
+          class="bg-white rounded-2xl border border-line
+                 p-5 relative overflow-hidden
+                 transition-all duration-200
+                 hover:-translate-y-1 hover:shadow-card"
+        >
+
+          <!-- Offer badge -->
+          <div class="flex items-center justify-between gap-3 mb-5">
+
+            <span
+              class="inline-flex items-center gap-1.5
+                     px-2.5 py-1 rounded-full
+                     bg-green-light text-green-dark
+                     text-[10px] font-bold tracking-wide"
+            >
+              <i
+                data-lucide="badge-percent"
+                class="w-3 h-3"
+              ></i>
+
+              ${escapeOfferHtml(offer.badge)}
+            </span>
+
+            <span class="text-[11px] text-muted">
+              ${escapeOfferHtml(offer.category)}
+            </span>
+
+          </div>
+
+
+          <!-- Tool identity -->
+          <div class="flex items-center gap-3">
+
+            <div
+              class="w-11 h-11 rounded-xl
+                     bg-cream border border-line
+                     flex items-center justify-center
+                     shrink-0"
+            >
+
+              <i
+                data-lucide="${escapeOfferHtml(offer.icon)}"
+                class="w-5 h-5 text-green-dark"
+              ></i>
+
+            </div>
+
+            <div class="min-w-0">
+
+              <h3 class="font-bold text-lg leading-tight truncate">
+                ${escapeOfferHtml(offer.name)}
+              </h3>
+
+              <p class="text-xs text-muted mt-1">
+                ${escapeOfferHtml(offer.category)}
+              </p>
+
+            </div>
+
+          </div>
+
+
+          <!-- Main offer -->
+          <div
+            class="mt-5 rounded-xl bg-cream
+                   border border-line p-4"
+          >
+
+            <p
+              class="text-2xl font-extrabold
+                     tracking-tight text-green-dark"
+            >
+              ${escapeOfferHtml(offer.headline)}
+            </p>
+
+            <p class="text-sm font-semibold text-ink mt-1">
+              ${escapeOfferHtml(offer.subheadline)}
+            </p>
+
+          </div>
+
+
+          <!-- Description -->
+          <p
+            class="text-sm text-ink/75
+                   leading-relaxed mt-4"
+          >
+            ${escapeOfferHtml(offer.description)}
+          </p>
+
+
+          <!-- Details -->
+          <div class="mt-5 space-y-2.5">
+
+            <div
+              class="flex items-center justify-between
+                     gap-3 text-xs"
+            >
+
+              <span class="text-muted">
+                Eligibility
+              </span>
+
+              <span class="font-semibold text-right">
+                ${escapeOfferHtml(offer.eligibility)}
+              </span>
+
+            </div>
+
+
+            <div
+              class="flex items-center justify-between
+                     gap-3 text-xs"
+            >
+
+              <span class="text-muted">
+                Availability
+              </span>
+
+              <span class="font-semibold text-right">
+                ${escapeOfferHtml(offer.validity)}
+              </span>
+
+            </div>
+
+
+            <div
+              class="flex items-center justify-between
+                     gap-3 text-xs"
+            >
+
+              <span class="text-muted">
+                Source
+              </span>
+
+              <span
+                class="font-semibold text-green-dark"
+              >
+                ✓ ${escapeOfferHtml(offer.source)}
+              </span>
+
+            </div>
+
+          </div>
+
+
+          <!-- Action -->
+          <div class="mt-5 pt-4 border-t border-line">
+
+            <a
+              href="${escapeOfferHtml(offer.website)}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="w-full inline-flex items-center
+                     justify-center gap-2
+                     px-4 py-2.5 rounded-xl
+                     bg-green text-white
+                     text-sm font-semibold
+                     hover:bg-green-dark
+                     transition-colors"
+            >
+
+              View Official Offer
+
+              <i
+                data-lucide="external-link"
+                class="w-3.5 h-3.5"
+              ></i>
+
+            </a>
+
+          </div>
+
+        </article>
+
+      `;
+    }
+
+
+    /*
+     * Render Offers only.
+     *
+     * This does NOT use renderTrendingGrid().
+     */
+    function renderOffers(filter = "all") {
+
+      const grid = document.getElementById("offersGrid");
+
+      if (!grid) return;
+
+
+      const filteredOffers =
+        filter === "all"
+          ? offers
+          : offers.filter((offer) => offer.type === filter);
+
+
+      if (!filteredOffers.length) {
+
+        grid.innerHTML = `
+
+          <div
+            class="col-span-full
+                   text-center py-16"
+          >
+
+            <div
+              class="w-12 h-12 mx-auto
+                     rounded-xl bg-green-light
+                     flex items-center justify-center"
+            >
+
+              <i
+                data-lucide="search-x"
+                class="w-5 h-5 text-green-dark"
+              ></i>
+
+            </div>
+
+            <p class="font-semibold mt-4">
+              No offers found
+            </p>
+
+            <p class="text-sm text-muted mt-1">
+              Try another category.
+            </p>
+
+          </div>
+
+        `;
+
+      } else {
+
+        grid.innerHTML = filteredOffers
+          .map(createOfferCard)
+          .join("");
+
+      }
+
+
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+
+    }
+
+
+    /*
+     * Filter buttons
+     */
+    document
+      .querySelectorAll(".offer-filter")
+      .forEach((button) => {
+
+        button.addEventListener("click", () => {
+
+          const filter = button.dataset.filter;
+
+
+          document
+            .querySelectorAll(".offer-filter")
+            .forEach((btn) => {
+
+              btn.classList.remove(
+                "bg-green",
+                "text-white"
+              );
+
+              btn.classList.add(
+                "bg-white",
+                "text-muted"
+              );
+
+            });
+
+
+          button.classList.remove(
+            "bg-white",
+            "text-muted"
+          );
+
+          button.classList.add(
+            "bg-green",
+            "text-white"
+          );
+
+
+          renderOffers(filter);
+
+        });
+
+      });
+
+
+    /*
+     * Initial render
+     */
+    renderOffers("all");
+
   </script>
+
 </body>
 </html>

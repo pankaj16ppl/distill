@@ -38,7 +38,7 @@
  *     url: "https://..."
  * ─────────────────────────────────────────────────────────────────────
  */
-
+console.log("### NEW RECOMMENDATION CARD JS LOADED ###");
 (function () {
   "use strict";
 
@@ -294,6 +294,10 @@ function getUsageInfo(tool) {
 }
 
   function cardMarkup(tool, isMain) {
+  const displayName =
+  String(tool.tool_name || tool.name || "Unknown Tool").trim();
+
+console.log("FINAL CARD NAME:", displayName);
 console.log("========== DISTILL CARD DATA ==========");
 console.log("TOOL:", tool);
 console.log("PROS:", tool.pros);
@@ -361,7 +365,7 @@ const cons =
   [];
 
 console.log("CARD NORMALIZED LIVE DATA:", {
-  name: tool.name || tool.tool_name,
+  name: tool.tool_name || tool.name || "Unknown Tool",
   liveFeatures,
   livePlans,
   verifiedFeatures,
@@ -397,33 +401,34 @@ console.log("CARD NORMALIZED LIVE DATA:", {
           <div class="rcard-front">
             <div class="rcard-header">
               <div class="rcard-identity">
-                <span class="rcard-logo">
-  ${
-    getToolLogo(tool)
-      ? `<img
-          src="${escapeHtml(getToolLogo(tool))}"
-          alt="${escapeHtml(tool.name || "Tool")} logo"
-          loading="lazy"
-          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
-        >`
-      : ""
-  }
-  ${tool.logo_url ? `
-  <span class="rcard-logo">
-    <img
-      src="${escapeHtml(tool.logo_url)}"
-      alt="${escapeHtml(tool.name || "")} logo"
-      loading="lazy"
-      onerror="this.closest('.rcard-logo')?.remove()"
-    >
-  </span>
-` : ""}
 
-<div class="rcard-titles" style="min-width:0">
-                  <p class="rcard-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(tool.name)}</p>
-                  <p class="rcard-category">${escapeHtml(tool.category || "")}</p>
-                </div>
-              </div>
+  <span class="rcard-logo">
+    ${
+      getToolLogo(tool)
+        ? `<img
+            src="${escapeHtml(getToolLogo(tool))}"
+            alt="${escapeHtml(tool.name || "Tool")} logo"
+            loading="lazy"
+            onerror="this.style.display='none';"
+          >`
+        : ""
+    }
+  </span>
+
+  <div class="rcard-titles" style="min-width:0">
+    <p
+      class="rcard-name"
+      style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"
+    >
+      ${escapeHtml(String(tool.tool_name || tool.name || "Unknown Tool"))}
+    </p>
+
+    <p class="rcard-category">
+      ${escapeHtml(tool.category || "")}
+    </p>
+  </div>
+
+</div>
               <span class="rcard-pricing ${PRICING_CLASS[pricing] || PRICING_CLASS.hybrid}">${PRICING_LABEL[pricing] || "Hybrid"}</span>
             </div>
 
@@ -769,8 +774,17 @@ ${
    */
   function renderRecommendationCards(container, tools) {
     if (!container) return;
-    const list = Array.isArray(tools) ? tools.slice(0, 8) : [];
+    const list = Array.isArray(tools)
+  ? tools.slice(0, 8).map(tool => ({
+      ...tool,
+      name: tool.tool_name || tool.name || "Unknown Tool"
+    }))
+  : [];
     console.log("RENDER LIST FIRST TOOL:", list[0]);
+    console.log("CARD NAME CHECK:", {
+  tool_name: list[0]?.tool_name,
+  name: list[0]?.name
+});
 
     // All cards — the highlighted pick and every alternative — render into
     // ONE grid (.rcard-row) so they're always equal width/height and the

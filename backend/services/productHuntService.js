@@ -14,8 +14,7 @@ function isValidUrl(value) {
 }
 
 function isLikelyAIProduct(product) {
-  const text = `${product.name || ""} ${product.tagline || ""}`
-    .toLowerCase();
+  const text = `${product.name || ""} ${product.tagline || ""}`.toLowerCase();
 
   const aiKeywords = [
     "ai",
@@ -55,9 +54,7 @@ function isLikelyAIProduct(product) {
     "autonomous"
   ];
 
-  return aiKeywords.some((keyword) =>
-    text.includes(keyword)
-  );
+  return aiKeywords.some((keyword) => text.includes(keyword));
 }
 
 async function getLatestProducts(targetCount = 50) {
@@ -67,16 +64,11 @@ async function getLatestProducts(targetCount = 50) {
   let after = null;
   let hasNextPage = true;
 
-  // Product Hunt defaults postedAfter to about one month.
-  // Using 90 days gives the importer a larger pool of recent launches.
   const postedAfter = new Date(
     Date.now() - 90 * 24 * 60 * 60 * 1000
   ).toISOString();
 
-  while (
-    products.length < targetCount &&
-    hasNextPage
-  ) {
+  while (products.length < targetCount && hasNextPage) {
     const query = `
       query {
         posts(
@@ -113,8 +105,7 @@ async function getLatestProducts(targetCount = 50) {
         { query },
         {
           headers: {
-            Authorization:
-              `Bearer ${process.env.PRODUCT_HUNT_TOKEN}`,
+            Authorization: `Bearer ${process.env.PRODUCT_HUNT_TOKEN}`,
             "Content-Type": "application/json",
             Accept: "application/json"
           },
@@ -122,15 +113,10 @@ async function getLatestProducts(targetCount = 50) {
         }
       );
 
-      // GraphQL can return HTTP 200 with errors.
       if (response.data?.errors?.length) {
         console.error(
           "Product Hunt GraphQL Error:",
-          JSON.stringify(
-            response.data.errors,
-            null,
-            2
-          )
+          JSON.stringify(response.data.errors, null, 2)
         );
         break;
       }
@@ -138,9 +124,7 @@ async function getLatestProducts(targetCount = 50) {
       const posts = response.data?.data?.posts;
 
       if (!posts) {
-        console.error(
-          "Product Hunt returned no posts data."
-        );
+        console.error("Product Hunt returned no posts data.");
         break;
       }
 
@@ -153,27 +137,17 @@ async function getLatestProducts(targetCount = 50) {
       );
 
       for (const product of posts.nodes || []) {
-        if (products.length >= targetCount) {
-          break;
-        }
+        if (products.length >= targetCount) break;
 
-        if (!product.id || seenIds.has(product.id)) {
-          continue;
-        }
+        if (!product.id || seenIds.has(product.id)) continue;
 
         seenIds.add(product.id);
 
-        if (!product.name || !product.tagline) {
-          continue;
-        }
+        if (!product.name || !product.tagline) continue;
 
-        if (!isValidUrl(product.url)) {
-          continue;
-        }
+        if (!isValidUrl(product.url)) continue;
 
-        if (!isLikelyAIProduct(product)) {
-          continue;
-        }
+        if (!isLikelyAIProduct(product)) continue;
 
         products.push({
           productHuntId: product.id,
@@ -188,11 +162,8 @@ async function getLatestProducts(targetCount = 50) {
         });
       }
 
-      hasNextPage =
-        posts.pageInfo?.hasNextPage === true;
-
-      after =
-        posts.pageInfo?.endCursor || null;
+      hasNextPage = posts.pageInfo?.hasNextPage === true;
+      after = posts.pageInfo?.endCursor || null;
 
       if (!after) {
         hasNextPage = false;
@@ -201,8 +172,7 @@ async function getLatestProducts(targetCount = 50) {
     } catch (error) {
       console.error(
         "Product Hunt request failed:",
-        error.response?.data ||
-          error.message
+        error.response?.data || error.message
       );
       break;
     }
