@@ -134,7 +134,7 @@ ${userCardMarkup(user, "sidebarLogout")}
       <aside id="mobileDrawer" class="lg:hidden fixed top-0 left-0 h-screen w-64 bg-white z-40 flex flex-col py-6 px-4 shadow-xl">
         <div class="flex items-center justify-between px-2 mb-8">
           <a href="dashboard.html" class="flex items-center gap-2.5">
-  <img src="assets/distill-logo.png" alt="Distill" class="w-11 h-11 object-contain">
+  <img src="assets/distill-logo.png" alt="Distill" class="w-14 h-14 object-contain">
   <span class="text-lg font-bold tracking-tight">Distill</span>
 </a>
           <button id="drawerClose" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-cream"><i data-lucide="x" class="w-4 h-4"></i></button>
@@ -189,6 +189,47 @@ showMoreHistory?.addEventListener("click", () => {
   }
 
   if (window.lucide) lucide.createIcons();
+});
+
+/* =========================================================
+   HISTORY ITEM CLICK
+   ========================================================= */
+
+sidebarHistory?.addEventListener("click", (event) => {
+
+  const historyButton =
+    event.target.closest(".history-run");
+
+  if (!historyButton) {
+    return;
+  }
+
+  const query =
+    historyButton.dataset.query;
+
+  if (!query) {
+    return;
+  }
+
+  window.location.href =
+    `home.html?q=${encodeURIComponent(query)}`;
+});
+// Open a history search
+sidebarHistory?.addEventListener("click", (event) => {
+  const historyButton = event.target.closest(".history-run");
+
+  if (!historyButton) {
+    return;
+  }
+
+  const query = historyButton.dataset.query;
+
+  if (!query) {
+    return;
+  }
+
+  window.location.href =
+    `home.html?q=${encodeURIComponent(query)}`;
 });
   
   // Logout (desktop + mobile sidebar)

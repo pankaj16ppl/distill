@@ -46,28 +46,112 @@
   <script>
   requireAuth();
   renderShell("trendy");
+const TRENDING_CACHE_KEY = "distill_trending_cache";
 
-  async function loadTrending() {
-    try {
-      const response = await fetch("http://localhost:5000/api/trending");
+async function loadTrending() {
 
-      const data = await response.json();
+  /* =========================================================
+     LOAD PREVIOUS TRENDING DATA FIRST
+     ========================================================= */
 
-      if (!data.success) {
-        console.error("Failed to load trending tools");
-        return;
+  try {
+
+    const cached =
+      sessionStorage.getItem(
+        TRENDING_CACHE_KEY
+      );
+
+    if (cached) {
+
+      const cachedTools =
+        JSON.parse(cached);
+
+      if (
+        Array.isArray(cachedTools) &&
+        cachedTools.length > 0
+      ) {
+
+        console.log(
+          "🔥 Loaded trending tools from session cache"
+        );
+
+        renderTrendingGrid(
+          "trendyGrid",
+          cachedTools
+        );
       }
-
-      console.log("🔥 Real Product Hunt trending data:", data.tools);
-
-      renderTrendingGrid("trendyGrid", data.tools);
-
-    } catch (error) {
-      console.error("❌ Trending API error:", error);
     }
+
+  } catch (error) {
+
+    console.warn(
+      "Trending cache read failed:",
+      error
+    );
   }
 
-  loadTrending();
+
+  /* =========================================================
+     FETCH FRESH DATA
+     ========================================================= */
+
+  try {
+
+    const response =
+      await fetch(
+        "http://localhost:5000/api/trending"
+      );
+
+    const data =
+      await response.json();
+
+    if (!data.success) {
+
+      console.error(
+        "Failed to load trending tools"
+      );
+
+      return;
+    }
+
+
+    console.log(
+      "🔥 Fresh Product Hunt trending data:",
+      data.tools
+    );
+
+
+    /* ---------------------------------------------------------
+       Save latest data
+       --------------------------------------------------------- */
+
+    sessionStorage.setItem(
+      TRENDING_CACHE_KEY,
+      JSON.stringify(data.tools)
+    );
+
+
+    /* ---------------------------------------------------------
+       Update grid
+       --------------------------------------------------------- */
+
+    renderTrendingGrid(
+      "trendyGrid",
+      data.tools
+    );
+
+
+  } catch (error) {
+
+    console.error(
+      "❌ Trending API error:",
+      error
+    );
+  }
+}
+
+
+loadTrending();
   </script>
 </body>
 </html>

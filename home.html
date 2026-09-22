@@ -805,8 +805,31 @@ if (addBtn) {
   );
 
 }
+/* =========================================================
+   HISTORY SEARCH FROM URL
+   ========================================================= */
 
+const historyQuery =
+  new URLSearchParams(window.location.search).get("q");
 
+if (historyQuery) {
+
+  const query =
+    historyQuery.trim();
+
+  if (query) {
+
+    searchInput.value =
+      query;
+
+    activeQueries =
+      [query];
+
+    renderTags();
+
+    searchBtn.click();
+  }
+}
 /* =========================================================
    INITIAL TAG RENDER
    ========================================================= */

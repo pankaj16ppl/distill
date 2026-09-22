@@ -25,343 +25,793 @@
         <div class="max-w-2xl mx-auto text-center pt-16">
 
           <h1 class="text-3xl font-bold tracking-tight">What are you trying to get done?</h1>
-          <p class="mt-3 text-muted">Describe a task and Distill will match you with the best AI tools for it.</p>
+          <p class="mt-3 text-muted">
+  Describe a task and Distill will match you with the best AI tools for it.
+</p>
+<!-- =====================================================
+     TOP SEARCH AREA
+     Visible when the page first opens
+     ===================================================== -->
 
-          <!-- Search & Multi-Query Controls -->
-          <div id="topSearchContainer" class="flex items-center gap-3 mt-8">
-            <div class="flex-1 search-shell flex items-center gap-3 bg-white rounded-search shadow-search border border-line h-[56px] px-4">
-              <i data-lucide="search" class="w-5 h-5 text-gray-400 shrink-0"></i>
-              <input id="homeSearchInput" type="text" autocomplete="off" placeholder="Search AI tools for any task..."
-                class="flex-1 min-w-0 bg-transparent outline-none text-sm placeholder:text-gray-400" />
-              <button id="voiceSearchBtn"
-                class="btn-scale shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:bg-green-light hover:text-green-dark transition"
-                title="Search by voice">
-                <i data-lucide="mic" class="w-5 h-5"></i>
-              </button>
-              <button id="homeSearchBtn" class="btn-scale shrink-0 px-5 py-2 rounded-btn bg-green text-white text-sm font-semibold hover:bg-green-dark">Search</button>
-            </div>
-            <button id="addQueryBtn" class="btn-scale shrink-0 w-11 h-11 rounded-full bg-green-light text-green-dark flex items-center justify-center hover:bg-green hover:text-white transition-colors" title="Add additional keywords">
-              <i data-lucide="plus" class="w-5 h-5"></i>
-            </button>
-          </div>
+<div id="topSearchArea" class="mt-8">
 
-          <!-- Active Tags -->
-<div id="activeTags" class="flex flex-wrap gap-2 justify-center mt-4"></div>
+  <div
+    id="searchBar"
+    class="search-shell flex items-center gap-3 bg-white rounded-search shadow-search border border-line h-[56px] px-4"
+  >
 
-<!-- Results -->
-<div id="resultsBlocks" class="max-w-6xl mx-auto mt-10">
+    <i
+      data-lucide="search"
+      class="w-5 h-5 text-gray-400 shrink-0"
+    ></i>
 
-  <!-- Empty State -->
-  <div id="emptyState" class="text-center py-20">
-    <i data-lucide="search-x" class="w-10 h-10 text-gray-300 mx-auto"></i>
+    <input
+      id="homeSearchInput"
+      type="text"
+      autocomplete="off"
+      placeholder="Search AI tools for any task..."
+      class="flex-1 min-w-0 bg-transparent outline-none text-sm placeholder:text-gray-400"
+    />
 
-    <p class="mt-4 text-muted">
-      Search for a task above to see your matches.
-    </p>
+  
+
+    <button
+      type="button"
+      id="homeSearchBtn"
+      class="btn-scale shrink-0 px-5 py-2 rounded-btn bg-green text-white text-sm font-semibold hover:bg-green-dark"
+    >
+      Search
+    </button>
+
   </div>
 
 </div>
-  <!--
-    Recommendation cards no longer render on this page — they live on their
-    own page now (recommendations.html) so Home stays a lightweight search
-    entry point instead of a long, card-heavy scroll. See
-    js/recommendation-card.js / css/recommendation-card.css for that page.
-  -->
 
-  <script src="js/auth.js"></script>
+
+<!-- =====================================================
+     ACTIVE SEARCH TAGS
+     ===================================================== -->
+
+<div
+  id="activeTags"
+  class="flex flex-wrap gap-2 justify-center mt-4"
+></div>
+
+
+<!-- =====================================================
+     RESULTS
+     ===================================================== -->
+
+<div
+  id="resultsBlocks"
+  class="max-w-6xl mx-auto w-full mt-10"
+>
+</div>
+
+
+<!-- =====================================================
+     BOTTOM SEARCH AREA
+     Hidden until the first successful search
+     ===================================================== -->
+
+<!--
+  Recommendation cards are rendered dynamically
+  by recommendation-card.js.
+-->
+<script src="js/auth.js"></script>
 <script src="js/history.js"></script>
 <script src="js/components.js"></script>
 <script src="js/search.js"></script>
 <script src="js/rating.js"></script>
 <script src="js/recommendation-card.js"></script>
-  <script>
+
+
+<script>
+/* =========================================================
+   HOME PAGE INITIALIZATION
+   ========================================================= */
+
 requireAuth();
 renderShell("home");
 
 console.log("HOME SCRIPT STARTED");
-    // Home only collects the query — actually finding & showing matches
-    // happens on recommendations.html, which renderRecommendationCards()
-    // populates.
-    let activeQueries = [];
-
-    const searchInput = document.getElementById('homeSearchInput');
-    const searchBtn = document.getElementById('homeSearchBtn');
-    const voiceSearchBtn = document.getElementById('voiceSearchBtn');
-    const addBtn = document.getElementById('addQueryBtn');
-    const activeTags = document.getElementById('activeTags');
 
 
-    // Voice Search
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
+/* =========================================================
+   DOM ELEMENTS
+   ========================================================= */
 
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
+let activeQueries = [];
+let hasSearched = false;
 
-      recognition.lang = "en-IN";
-      recognition.continuous = false;
-      recognition.interimResults = false;
+const searchInput =
+  document.getElementById("homeSearchInput");
 
-      voiceSearchBtn.addEventListener("click", () => {
-        recognition.start();
+const searchBtn =
+  document.getElementById("homeSearchBtn");
 
-        voiceSearchBtn.classList.add("bg-red-100", "text-red-500");
-        voiceSearchBtn.innerHTML =
-          '<i data-lucide="mic-off" class="w-5 h-5"></i>';
 
-        if (window.lucide) lucide.createIcons();
-      });
+const addBtn =
+  document.getElementById("addQueryBtn");
 
-      recognition.onresult = (event) => {
-        const voiceText = event.results[0][0].transcript;
-        searchInput.value = voiceText;
-        searchBtn.click();
-      };
+const activeTags =
+  document.getElementById("activeTags");
 
-      recognition.onend = () => {
-        voiceSearchBtn.classList.remove("bg-red-100", "text-red-500");
-        voiceSearchBtn.innerHTML =
-          '<i data-lucide="mic" class="w-5 h-5"></i>';
+const topSearchArea =
+  document.getElementById("topSearchArea");
 
-        if (window.lucide) lucide.createIcons();
-      };
+const resultsBlocks =
+  document.getElementById("resultsBlocks");
 
-      recognition.onerror = (event) => {
-        console.log("Voice recognition error:", event.error);
 
-        voiceSearchBtn.classList.remove("bg-red-100", "text-red-500");
-        voiceSearchBtn.innerHTML =
-          '<i data-lucide="mic" class="w-5 h-5"></i>';
-
-        if (window.lucide) lucide.createIcons();
-      };
-    } else {
-      voiceSearchBtn.addEventListener("click", () => {
-        alert("Voice search is not supported in this browser. Please use Chrome.");
-      });
-    }
+/* =========================================================
+   DATABASE ROW → RECOMMENDATION CARD
+   ========================================================= */
 
 function mapDbToolToCard(row, query) {
-  const pricingRaw = (row.pricing || "hybrid").toLowerCase();
 
-  const pricing = ["free", "hybrid", "paid"].includes(pricingRaw)
-    ? pricingRaw
-    : "hybrid";
+  console.log(
+    "MAPPING ROW:",
+    row
+  );
+
+
+  /* -------------------------------------------------------
+     Normalize arrays
+     ------------------------------------------------------- */
+
+  function normalizeArray(value) {
+
+    if (Array.isArray(value)) {
+      return value;
+    }
+
+    if (typeof value === "string") {
+
+      try {
+
+        const parsed =
+          JSON.parse(value);
+
+        return Array.isArray(parsed)
+          ? parsed
+          : [];
+
+      } catch {
+
+        return [];
+      }
+    }
+
+    return [];
+  }
+
+
+  /* -------------------------------------------------------
+     Live data
+     ------------------------------------------------------- */
+
+  const livePlans =
+    normalizeArray(row.live_plans);
+
+  const liveFeatures =
+    normalizeArray(row.live_features);
+
+
+  console.log(
+    "LIVE DATA AFTER NORMALIZATION:",
+    {
+      tool: row.tool_name,
+      livePlans,
+      liveFeatures
+    }
+  );
+
+
+  /* -------------------------------------------------------
+     Pricing type
+     ------------------------------------------------------- */
+
+  const pricingRaw =
+    String(
+      row.pricing || "hybrid"
+    ).toLowerCase();
+
+  const pricing =
+    ["free", "hybrid", "paid"].includes(
+      pricingRaw
+    )
+      ? pricingRaw
+      : "hybrid";
+
+
+  /* -------------------------------------------------------
+     Recommendation card object
+     ------------------------------------------------------- */
 
   return {
-    id: row.id,
-    name: row.tool_name,
-    category: row.category || "AI Tool",
-    pricing: pricing,
-    description: `Great for "${query}". ${row.description || ""}`,
-    pros: Array.isArray(row.best_use_cases)
-      ? row.best_use_cases.slice(0, 2)
-      : [],
-    cons: [],
-    rating: 0,
-    url: row.official_website || "#",
-    credits: row.pricing === "free"
-      ? "Free tier available"
-      : undefined
+
+    /* Preserve API fields */
+    ...row,
+
+
+    /* Basic information */
+
+    id:
+      row.id,
+
+    name:
+      row.tool_name ||
+      row.name ||
+      "Unknown Tool",
+
+    category:
+      row.category ||
+      "AI Tool",
+
+    pricing,
+
+
+    description:
+      row.description || "",
+
+
+    /* Best use */
+
+    best_use_cases:
+      row.best_use_cases || "",
+
+
+    /* Pros */
+
+    pros:
+      Array.isArray(row.pros)
+        ? row.pros
+        : Array.isArray(row.pros_list)
+          ? row.pros_list
+          : [],
+
+
+    /* Cons */
+
+    cons:
+      Array.isArray(row.cons)
+        ? row.cons
+        : Array.isArray(row.cons_list)
+          ? row.cons_list
+          : [],
+
+
+    /* Rating */
+
+    rating:
+      Number(
+        row.rating ??
+        row.average_rating ??
+        row.avg_rating ??
+        0
+      ),
+
+
+    /* Official website */
+
+    url:
+      row.official_website ||
+      row.url ||
+      "#",
+
+
+    /* Live pricing */
+
+    livePlans,
+
+
+    /* Live features */
+
+    liveFeatures,
+
+
+    /* Real logo only */
+
+    logo_url:
+      row.logo_url || "",
+
+
+    /* Source status */
+
+    sourceStatus:
+      row.source_status ||
+      "unknown",
+
+    sourceLastSuccess:
+      row.last_success_at ||
+      row.source_last_success ||
+      null
   };
 }
-//performsearch
-async function performSearch() {
-  const fullQuery = searchInput.value.trim();
 
-  if (!fullQuery) return;
-  console.log("PERFORM SEARCH:", fullQuery);
+
+/* =========================================================
+   SEARCH
+   ========================================================= */
+
+async function performSearch() {
+
+  const fullQuery =
+    searchInput.value.trim();
+
+
+  if (!fullQuery) {
+    return;
+  }
+
+
+  console.log(
+    "PERFORM SEARCH:",
+    fullQuery
+  );
+
+
+  /* -------------------------------------------------------
+     Save history
+     ------------------------------------------------------- */
 
   addHistory(fullQuery);
 
-  const resultsBlocks = document.getElementById("resultsBlocks");
-  const emptyState = document.getElementById("emptyState");
 
-  emptyState.classList.add("hidden");
+  /* -------------------------------------------------------
+     Loading UI
+     ------------------------------------------------------- */
 
-  // Loading block for THIS search only
-  const loadingBlock = document.createElement("div");
-  loadingBlock.className = "search-loading text-center py-8 text-muted";
-  loadingBlock.textContent = `Searching "${fullQuery}"...`;
+  const loadingBlock =
+    document.createElement("div");
 
-  resultsBlocks.appendChild(loadingBlock);
+  loadingBlock.className =
+    "search-loading text-center py-8 text-muted";
+
+  loadingBlock.textContent =
+    `Searching "${fullQuery}"...`;
+
+  resultsBlocks.appendChild(
+    loadingBlock
+  );
+
 
   try {
-    const response = await fetch(
-      `${API_BASE}/search?q=${encodeURIComponent(fullQuery)}`
-    );
+
+    const response =
+      await fetch(
+        `${API_BASE}/search?q=${encodeURIComponent(fullQuery)}`
+      );
+
 
     if (!response.ok) {
-      throw new Error(`Search failed: ${response.status}`);
+
+      throw new Error(
+        `Search failed: ${response.status}`
+      );
     }
 
-    const data = await response.json();
 
-    console.log("SEARCH RESPONSE:", data);
+    const data =
+      await response.json();
 
-    // Remove only this search's loading message
+
+    console.log(
+      "SEARCH RESPONSE:",
+      data
+    );
+
+
     loadingBlock.remove();
 
+
     if (!data.success) {
-      throw new Error(data.message || "Search failed");
+
+      throw new Error(
+        data.message ||
+        "Search failed"
+      );
     }
 
-    const rows = Array.isArray(data.data)
-      ? data.data
-      : [];
 
-    // No results
+    const rows =
+      Array.isArray(data.data)
+        ? data.data
+        : [];
+
+
+    /* -----------------------------------------------------
+       No results
+       ----------------------------------------------------- */
+
     if (rows.length === 0) {
-      const noResultsBlock = document.createElement("div");
-      noResultsBlock.className = "results-block mt-8 page-enter";
+
+      const noResultsBlock =
+        document.createElement("div");
+
+      noResultsBlock.className =
+        "results-block mt-8 page-enter";
+
 
       noResultsBlock.innerHTML = `
         <div class="text-center py-16">
-          <i data-lucide="search-x"
-             class="w-10 h-10 text-gray-300 mx-auto"></i>
+
+          <i
+            data-lucide="search-x"
+            class="w-10 h-10 text-gray-300 mx-auto"
+          ></i>
 
           <p class="mt-4 text-muted">
             No AI tools matched "${fullQuery}".
           </p>
+
         </div>
       `;
 
-      resultsBlocks.appendChild(noResultsBlock);
 
-      if (window.lucide) lucide.createIcons();
+      resultsBlocks.appendChild(
+        noResultsBlock
+      );
+
+
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+
+
+      /* First search still moves the bar */
+
+      moveSearchBarToBottom();
 
       return;
     }
 
-    const toolsForCards = rows
-      .slice(0, 7)
-      .map(row => mapDbToolToCard(row, fullQuery));
 
-    // IMPORTANT:
-    // Do NOT clear resultsBlocks here.
-    // Previous searches must stay visible.
-    const block = document.createElement("div");
-    block.className = "results-block mt-8 page-enter";
+    /* -----------------------------------------------------
+       Convert rows to cards
+       ----------------------------------------------------- */
 
-    // Add search title
-    const title = document.createElement("h2");
-    title.className = "text-lg font-semibold mb-4";
-    title.textContent = `Results for "${fullQuery}"`;
+    const toolsForCards =
+      rows
+        .slice(0, 7)
+        .map(
+          row =>
+            mapDbToolToCard(
+              row,
+              fullQuery
+            )
+        );
 
-    block.appendChild(title);
-    resultsBlocks.appendChild(block);
+
+    /* -----------------------------------------------------
+       Create result block
+       ----------------------------------------------------- */
+
+    const block =
+      document.createElement("div");
+
+    block.className =
+      "results-block mt-8 page-enter";
+
+
+    /* -----------------------------------------------------
+       Result title
+       ----------------------------------------------------- */
+
+    const title =
+      document.createElement("h2");
+
+    title.className =
+      "text-lg font-semibold mb-4";
+
+    title.textContent =
+      `Results for "${fullQuery}"`;
+
+
+    block.appendChild(
+      title
+    );
+
+
+    resultsBlocks.appendChild(
+      block
+    );
+
+
+    /* -----------------------------------------------------
+       Render recommendation cards
+       ----------------------------------------------------- */
 
     renderRecommendationCards(
       block,
       toolsForCards
     );
-const topSearchContainer = document.getElementById("topSearchContainer");
 
-if (topSearchContainer) {
-  resultsBlocks.appendChild(topSearchContainer);
-}
-setTimeout(() => {
-  topSearchContainer?.scrollIntoView({
-    behavior: "smooth",
-    block: "center"
-  });
-}, 100);
-setTimeout(() => {
-  block.scrollIntoView({
-    behavior: "smooth",
-    block: "start"
-  });
-}, 100);
-if (window.lucide) {
-  lucide.createIcons();
-}
+
+    /* -----------------------------------------------------
+       Move search bar after first successful search
+       ----------------------------------------------------- */
+
+    moveSearchBarToBottom();
+
+
+    /* -----------------------------------------------------
+       Icons
+       ----------------------------------------------------- */
+
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+
+
+    /* -----------------------------------------------------
+       Scroll to results
+       ----------------------------------------------------- */
+
+    setTimeout(() => {
+
+      block.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+
+    }, 100);
+
 
   } catch (error) {
-    console.error("HOME SEARCH ERROR:", error);
 
-    // Remove only this search's loading message
+    console.error(
+      "HOME SEARCH ERROR:",
+      error
+    );
+
+
     loadingBlock.remove();
 
-    const errorBlock = document.createElement("div");
-    errorBlock.className = "results-block mt-8 page-enter";
+
+    const errorBlock =
+      document.createElement("div");
+
+    errorBlock.className =
+      "results-block mt-8 page-enter";
+
 
     errorBlock.innerHTML = `
       <div class="text-center py-16">
+
         <p class="text-red-500 font-semibold">
           Couldn't reach the server.
         </p>
 
         <p class="text-sm text-muted mt-2">
-          Please make sure the backend is running on port 5000.
+          Please make sure the backend is running
+          on port 5000.
         </p>
+
       </div>
     `;
 
-    resultsBlocks.appendChild(errorBlock);
+
+    resultsBlocks.appendChild(
+      errorBlock
+    );
   }
-}    
+}
+
+
+/* =========================================================
+   MOVE SEARCH BAR TO BOTTOM
+   ========================================================= */
+
+function moveSearchBarToBottom() {
+
+  if (
+    topSearchArea &&
+    !hasSearched
+  ) {
+
+    hasSearched =
+      true;
+
+    topSearchArea.classList.remove(
+      "mt-8"
+    );
+
+    topSearchArea.classList.add(
+      "search-bottom"
+    );
+
+    console.log(
+      "SEARCH BAR MOVED TO BOTTOM"
+    );
+  }
+}
+
+
+/* =========================================================
+   SEARCH TAGS
+   ========================================================= */
+
 function renderTags() {
-  activeTags.innerHTML = activeQueries.map((q, i) => `
-    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-light text-green-dark text-xs font-semibold">
-      ${q}
-      <button
-        class="remove-tag hover:text-red-500"
-        data-index="${i}"
-      >
-        <i data-lucide="x" class="w-3 h-3"></i>
-      </button>
-    </span>
-  `).join("");
+
+  activeTags.innerHTML =
+    activeQueries
+      .map(
+        (query, index) => `
+          <span
+            class="
+              inline-flex
+              items-center
+              gap-1.5
+              px-3
+              py-1
+              rounded-full
+              bg-green-light
+              text-green-dark
+              text-xs
+              font-semibold
+            "
+          >
+
+            ${query}
+
+            <button
+              class="remove-tag hover:text-red-500"
+              data-index="${index}"
+              type="button"
+            >
+
+              <i
+                data-lucide="x"
+                class="w-3 h-3"
+              ></i>
+
+            </button>
+
+          </span>
+        `
+      )
+      .join("");
+
 
   if (window.lucide) {
     lucide.createIcons();
   }
 
-  document.querySelectorAll(".remove-tag").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const idx = parseInt(btn.dataset.index, 10);
-      activeQueries.splice(idx, 1);
-      renderTags();
+
+  /* -------------------------------------------------------
+     Remove tag
+     ------------------------------------------------------- */
+
+  document
+    .querySelectorAll(".remove-tag")
+    .forEach(button => {
+
+      button.addEventListener(
+        "click",
+        () => {
+
+          const index =
+            Number(
+              button.dataset.index
+            );
+
+
+          activeQueries.splice(
+            index,
+            1
+          );
+
+
+          renderTags();
+        }
+      );
+
     });
-  });
 }
-// SEARCH BUTTON
-searchBtn.addEventListener("click", () => {
-  console.log("SEARCH BUTTON CLICKED");
 
-  const val = searchInput.value.trim();
 
-  if (!val) return;
+/* =========================================================
+   SEARCH BUTTON
+   ========================================================= */
 
-  console.log("VALUE:", val);
+searchBtn.addEventListener(
+  "click",
+  async () => {
 
-activeQueries = [val];
+    console.log(
+      "SEARCH BUTTON CLICKED"
+    );
 
-renderTags();
 
-console.log("ABOUT TO CALL PERFORM SEARCH");
+    const value =
+      searchInput.value.trim();
 
-performSearch();
-});
-// ENTER KEY
-searchInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    searchBtn.click();
+
+    if (!value) {
+      return;
+    }
+
+
+    activeQueries =
+      [value];
+
+
+    renderTags();
+
+
+    console.log(
+      "ABOUT TO CALL PERFORM SEARCH"
+    );
+
+
+    await performSearch();
+
   }
-});
+);
 
-// PLUS BUTTON
-addBtn.addEventListener("click", () => {
-  const val = searchInput.value.trim();
 
-  if (!val) return;
+/* =========================================================
+   ENTER KEY
+   ========================================================= */
 
-  activeQueries.push(val);
-  renderTags();
-  searchInput.value = "";
-});
+searchInput.addEventListener(
+  "keydown",
+  event => {
+
+    if (event.key === "Enter") {
+
+      event.preventDefault();
+
+      searchBtn.click();
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   PLUS BUTTON
+   ========================================================= */
+
+if (addBtn) {
+
+  addBtn.addEventListener(
+    "click",
+    () => {
+
+      const value =
+        searchInput.value.trim();
+
+
+      if (!value) {
+        return;
+      }
+
+
+      activeQueries.push(
+        value
+      );
+
+
+      renderTags();
+
+
+      searchInput.value = "";
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   INITIAL TAG RENDER
+   ========================================================= */
 
 renderTags();
-  </script>
+</script>
 </body>
-</html>
+</html>*/

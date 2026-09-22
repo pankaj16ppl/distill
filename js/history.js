@@ -99,7 +99,7 @@ function draw() {
   list.innerHTML = visibleItems
     .map((h) => `
       <a
-        href="new-chat.html?historyId=${encodeURIComponent(h.id)}"
+        href="home.html?q=${encodeURIComponent(h.query)}"
         class="nav-link flex items-center gap-3 px-5 py-2.5 hover:bg-green-light/50"
       >
 
