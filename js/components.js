@@ -98,7 +98,7 @@ function renderShell(active) {
     sidebarRoot.innerHTML = `
       <aside class="hidden lg:flex w-64 shrink-0 flex-col border-r border-line bg-white h-screen sticky top-0 py-6 px-4">
         <a href="dashboard.html" class="flex items-center gap-2.5 px-2 mb-8">
-  <img src="assets/distill-logo.png" alt="Distill" class="w-11 h-11 object-contain">
+  <img src="assets/distill-logo.png" alt="Distill" class="w-12 h-12 object-contain">
   <span class="text-lg font-bold tracking-tight">Distill</span>
 </a>
         <nav class="flex-1 flex flex-col gap-1 overflow-y-auto">

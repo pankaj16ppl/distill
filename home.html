@@ -329,7 +329,7 @@ function mapDbToolToCard(row, query) {
       null
   };
 }
-
+let searchRunning = false;
 
 /* =========================================================
    SEARCH
@@ -340,24 +340,30 @@ async function performSearch() {
   const fullQuery =
     searchInput.value.trim();
 
-
   if (!fullQuery) {
     return;
   }
 
+  // Prevent duplicate searches
+  if (searchRunning) {
+    console.log(
+      "Search already in progress. Ignoring duplicate search."
+    );
+    return;
+  }
+
+  searchRunning = true;
 
   console.log(
     "PERFORM SEARCH:",
     fullQuery
   );
 
-
   /* -------------------------------------------------------
      Save history
      ------------------------------------------------------- */
 
   addHistory(fullQuery);
-
 
   /* -------------------------------------------------------
      Loading UI
@@ -376,7 +382,6 @@ async function performSearch() {
     loadingBlock
   );
 
-
   try {
 
     const response =
@@ -384,42 +389,35 @@ async function performSearch() {
         `${API_BASE}/search?q=${encodeURIComponent(fullQuery)}`
       );
 
-
     if (!response.ok) {
-
       throw new Error(
         `Search failed: ${response.status}`
       );
     }
 
-
     const data =
       await response.json();
-
 
     console.log(
       "SEARCH RESPONSE:",
       data
     );
 
-
     loadingBlock.remove();
 
-
     if (!data.success) {
-
       throw new Error(
         data.message ||
         "Search failed"
       );
     }
 
-
     const rows =
       Array.isArray(data.data)
         ? data.data
         : [];
 
+  
 
     /* -----------------------------------------------------
        No results
@@ -559,23 +557,22 @@ async function performSearch() {
     }, 100);
 
 
-  } catch (error) {
+    } catch (error) {
 
     console.error(
       "HOME SEARCH ERROR:",
       error
     );
 
-
+    // Remove loading message
     loadingBlock.remove();
 
-
+    // Show error ONLY when the search actually fails
     const errorBlock =
       document.createElement("div");
 
     errorBlock.className =
       "results-block mt-8 page-enter";
-
 
     errorBlock.innerHTML = `
       <div class="text-center py-16">
@@ -592,10 +589,14 @@ async function performSearch() {
       </div>
     `;
 
-
     resultsBlocks.appendChild(
       errorBlock
     );
+
+  } finally {
+
+    // Unlock search only after it is completely finished
+    searchRunning = false;
   }
 }
 
@@ -715,42 +716,53 @@ function renderTags() {
 /* =========================================================
    SEARCH BUTTON
    ========================================================= */
-
 searchBtn.addEventListener(
   "click",
-  async () => {
+  async (event) => {
 
-    console.log(
-      "SEARCH BUTTON CLICKED"
-    );
+    // Prevent form submission / page reload
+    event.preventDefault();
 
+    // Ignore another click while search is running
+    if (searchRunning) {
+      console.log("Search already running. Ignoring click.");
+      return;
+    }
+
+    console.log("SEARCH BUTTON CLICKED");
 
     const value =
       searchInput.value.trim();
-
 
     if (!value) {
       return;
     }
 
-
-    activeQueries =
-      [value];
-
+    activeQueries = [value];
 
     renderTags();
 
+    // Disable button visually
+    searchBtn.disabled = true;
+    searchBtn.textContent = "Searching...";
 
     console.log(
       "ABOUT TO CALL PERFORM SEARCH"
     );
 
+    try {
 
-    await performSearch();
+      await performSearch();
+
+    } finally {
+
+      // Enable again only after search is completely finished
+      searchBtn.disabled = false;
+      searchBtn.textContent = "Search";
+    }
 
   }
 );
-
 
 /* =========================================================
    ENTER KEY
