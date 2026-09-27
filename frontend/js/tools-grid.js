@@ -141,7 +141,7 @@ function renderTrendingGrid(containerId, tools) {
             ${
               tool.official_website
                 ? `
-                  
+                  <a
                     href="${tool.official_website}"
                     target="_blank"
                     rel="noopener noreferrer"
