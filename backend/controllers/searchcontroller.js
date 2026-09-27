@@ -1,45 +1,66 @@
 const searchModel = require("../models/searchmodel");
 const ai = require("../config/gemini");
-const toolModel = require("../models/toolmodel");
-    const {
-    fetchLivePricingBatch
-} = require("../services/geminiPricingService");
+
+const QUERY_UNDERSTANDING_TIMEOUT = 5000;
+
+/*
+ * Prevent Gemini query understanding from holding the search request
+ * indefinitely. Database search remains the fallback.
+ */
+function withTimeout(promise, ms, label) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => {
+            setTimeout(() => {
+                reject(
+                    new Error(`${label} timed out after ${ms}ms`)
+                );
+            }, ms);
+        })
+    ]);
+}
 
 const searchTools = async (req, res) => {
-
     try {
+        const query =
+            typeof req.query.q === "string"
+                ? req.query.q.trim()
+                : "";
 
-        const { q } = req.query;
-
-        if (!q || q.trim() === "") {
+        if (!query) {
             return res.status(400).json({
                 success: false,
                 message: "Search query is required"
             });
         }
 
-        const originalQuery = q.trim();
+        const originalQuery = query;
 
         let searchTerms = [];
         let searchCategory = null;
         let searchSubcategory = null;
 
-
         // ============================================================
         // QUERY UNDERSTANDING
         // ============================================================
+        //
+        // Gemini only understands the user's intent.
+        // It does NOT provide the final tool data.
+        //
+        // If Gemini fails / times out / reaches quota:
+        // the real database search continues using the user's query.
+        // ============================================================
 
         try {
-
             const prompt = `
 You are the query-understanding layer for Distill.
 
-Your job is ONLY to classify the user's search query into the
+Your job is ONLY to classify the user's search query into
 existing categories and subcategories used by the database.
 
-Do NOT select tools.
-Do NOT recommend applications.
+Do NOT recommend tools.
 Do NOT invent categories.
+Do NOT invent subcategories.
 
 Existing categories:
 
@@ -62,7 +83,7 @@ Research
 Research & Knowledge
 Video & Audio
 
-Examples of existing subcategories:
+Known subcategory examples:
 
 Food & Cooking
 Travel
@@ -93,56 +114,56 @@ AI IDE
 Cloud IDE
 Code Completion
 Privacy-focused
-and other subcategories already stored in the database.
 
 USER QUERY:
 ${originalQuery}
 
-Determine:
-
-1. category
-2. subcategory
-3. keywords
-
 Rules:
+
 - Use an existing category whenever possible.
 - Use an existing subcategory whenever possible.
-- For a query like "cooking" use:
+- For "cooking" use:
   category = "Other Niche Tools"
   subcategory = "Food & Cooking"
-- For a query like "recipe maker" also prefer Food & Cooking.
-- Keywords should contain the important concepts from the query.
-- Return only JSON.
-- Do not explain your answer.
+- For "recipe maker" prefer Food & Cooking.
+- Keywords must contain the important concepts from the query.
+- Return ONLY valid JSON.
 
 Return exactly:
 
 {
-  "category": "existing category",
+  "category": "existing category or null",
   "subcategory": "existing subcategory or null",
   "keywords": ["keyword1", "keyword2", "keyword3"]
 }
 `;
 
-            const response = await ai.interactions.create({
-                model: "gemini-3.5-flash",
-                input: prompt
-            });
+            const response = await withTimeout(
+                ai.interactions.create({
+                    model: "gemini-3.5-flash",
+                    input: prompt
+                }),
+                QUERY_UNDERSTANDING_TIMEOUT,
+                "Gemini query understanding"
+            );
 
-            const text = (response.output_text || "")
-                .replace(/```json/gi, "")
-                .replace(/```/g, "")
-                .trim();
+            const text =
+                (response.output_text || "")
+                    .replace(/```json/gi, "")
+                    .replace(/```/g, "")
+                    .trim();
 
             const parsed = JSON.parse(text);
 
             searchCategory =
-                typeof parsed.category === "string"
+                typeof parsed.category === "string" &&
+                parsed.category.trim()
                     ? parsed.category.trim()
                     : null;
 
             searchSubcategory =
-                typeof parsed.subcategory === "string"
+                typeof parsed.subcategory === "string" &&
+                parsed.subcategory.trim()
                     ? parsed.subcategory.trim()
                     : null;
 
@@ -162,12 +183,17 @@ Return exactly:
                     : [];
 
         } catch (error) {
-
             console.error(
                 "Search intent understanding failed:",
                 error.message
             );
 
+            /*
+             * Safe fallback.
+             *
+             * Search directly using the user's real query.
+             * No fake AI result is created.
+             */
             searchCategory = null;
             searchSubcategory = null;
 
@@ -179,20 +205,16 @@ Return exactly:
                     .slice(0, 6);
         }
 
-
         // ============================================================
         // VALIDATE SEARCH TERMS
         // ============================================================
 
         if (!searchTerms.length) {
-
-            return res.status(500).json({
+            return res.status(400).json({
                 success: false,
                 message: "Could not understand search query"
             });
-
         }
-
 
         // ============================================================
         // SEARCH DEBUG
@@ -218,239 +240,136 @@ Return exactly:
             searchTerms
         );
 
-
         // ============================================================
-        // DATABASE SEARCH
+        // DYNAMIC DATABASE SEARCH
         // ============================================================
 
-        const tools =
+        let finalTools =
             await searchModel.searchTools(
                 searchTerms,
                 searchCategory,
                 searchSubcategory
             );
-            let finalTools = tools;
 
-if (
-    finalTools.length === 0 &&
-    searchSubcategory
-) {
-    console.log(
-        `No tools found for subcategory "${searchSubcategory}". Retrying without subcategory...`
-    );
+        // If the AI-selected subcategory produces no result,
+        // retry with the same query/category but without subcategory.
+        if (
+            finalTools.length === 0 &&
+            searchSubcategory
+        ) {
+            console.log(
+                `No tools found for subcategory "${searchSubcategory}". Retrying without subcategory...`
+            );
 
-    finalTools =
-        await searchModel.searchTools(
-            searchTerms,
-            searchCategory,
-            null
-        );
-}
-
-console.log(
-    "Matched tools:",
-    finalTools.map(tool => tool.tool_name)
-);
-
-        console.log("========== START LIVE PLAN CHECK ==========");
-console.log(
-    "TOOLS RECEIVED BY LIVE PLAN CHECK:",
-    finalTools.length
-);
-const staleTools = [];
-const staleToolIds = new Set();
-for (const tool of finalTools) {
-
-    const cachedPlans =
-        await toolModel.getFreshToolPlans(tool.id);
-
-    if (
-        Array.isArray(cachedPlans) &&
-        cachedPlans.length > 0
-    ) {
-        tool.live_plans = cachedPlans;
-        tool.pricing_status = "verified";
+            finalTools =
+                await searchModel.searchTools(
+                    searchTerms,
+                    searchCategory,
+                    null
+                );
+        }
 
         console.log(
-            `Using database plans for ${tool.tool_name}:`,
-            cachedPlans
+            "Matched tools:",
+            finalTools.map(
+                tool => tool.tool_name
+            )
         );
 
-    } else {
-        tool.live_plans = [];
-        tool.pricing_status = "not_available";
-
-        if (tool.official_website) {
-            staleTools.push(tool);
-
-            console.log(
-                `No plan data in database for ${tool.tool_name}`
-            );
-        }
-    }
-}
-
-//
-// Existing plans:
-//      Use database, no Gemini.
-//
-// No plans:
-//      Add tool to staleTools for Gemini verification.
-//
-// No expiry check.
-// ============================================================
-
-       // ============================================================
-// LIVE PLAN CACHE + BATCH LIVE VERIFICATION
-//
-// Fresh data:
-//      Use database.
-//
-// Missing/expired:
-//      Collect tool and verify all stale tools
-//      with ONE Gemini + Google Search request.
-// ============================================================
-// ============================================================
-// 2. BATCH GEMINI + GOOGLE SEARCH
-// ============================================================
-
-if (staleTools.length > 0) {
-
-    console.log(
-        `Starting batch live pricing verification for ${staleTools.length} tools:`,
-        staleTools.map(tool => tool.tool_name)
-    );
-
-    try {
-
-        const batchResults =
-            await fetchLivePricingBatch(staleTools);
-
-
-        // --------------------------------------------------------
-        // Create lookup:
+        // ============================================================
+        // RESPONSE
+        // ============================================================
         //
-        // tool_id → plans
-        // --------------------------------------------------------
+        // searchmodel already provides:
+        // - ai_tools data
+        // - live_plans
+        // - live_features
+        // - source information
+        //
+        // Therefore do NOT run another pricing query here.
+        // ============================================================
 
-        const resultMap = new Map(
-            batchResults.map(result => [
-                Number(result.tool_id),
-                Array.isArray(result.plans)
-                    ? result.plans
-                    : []
-            ])
-        );
+const responseData = finalTools.map((tool) => ({
+    id: tool.id,
+    tool_name: tool.tool_name,
+    slug: tool.slug,
 
+    category: tool.category,
+    subcategory: tool.subcategory,
+    target_users: tool.target_users,
 
-        // --------------------------------------------------------
-        // 3. SAVE RESULT FOR EACH TOOL
-        // --------------------------------------------------------
+    description: tool.description,
+    best_use_cases: tool.best_use_cases,
 
-        for (const tool of staleTools) {
+    official_website: tool.official_website,
 
-            const plans =
-                resultMap.get(Number(tool.id)) || [];
+    pricing: tool.pricing,
+    free_plan_details: tool.free_plan_details,
+    paid_plans: tool.paid_plans,
 
+    ai_models: tool.ai_models,
+    api_available: tool.api_available,
+    platforms: tool.platforms,
+    login_required: tool.login_required,
 
-            if (
-                Array.isArray(plans) &&
-                plans.length > 0
-            ) {
+    alternatives: tool.alternatives,
+    tags: tool.tags,
+    primary_use: tool.primary_use,
 
-                await toolModel.replaceToolPlans({
-                    tool_id: tool.id,
-                    plans,
-                    source_url:
-                        plans[0].source_url ||
-                        tool.official_website ||
-                        null,
-                    last_verified_at: new Date()
-                });
+    is_active: tool.is_active,
 
+    source: tool.source,
+    source_url: tool.source_url,
+    logo_url: tool.logo_url,
 
-                tool.live_plans = plans;
+    votes_count: tool.votes_count,
+    is_trending: tool.is_trending,
 
-console.log(
-    `Saved Gemini data for ${tool.tool_name}:`,
-    tool.live_plans
-);
+    live_plans: Array.isArray(tool.live_plans)
+        ? tool.live_plans
+        : [],
 
-            } else {
+    live_features: Array.isArray(tool.live_features)
+        ? tool.live_features
+        : [],
 
-                tool.live_plans = [];
+    relevance_score: tool.relevance_score,
+    matched_keywords: tool.matched_keywords,
 
-                console.log(
-                    `No current verified pricing found for ${tool.tool_name}`
-                );
-            }
-        }
+    last_checked_at: tool.last_checked_at,
+    last_updated_at: tool.last_updated_at,
+    data_status: tool.data_status,
+    last_verified_at: tool.last_verified_at,
+    best_use: tool.best_use,
 
-    } catch (error) {
+    source_status: tool.source_status,
+    http_status: tool.http_status,
+    last_success_at: tool.last_success_at,
+    last_error: tool.last_error,
+    failure_count: tool.failure_count,
+    success_count: tool.success_count
+}));
 
-        console.error(
-            "Batch Gemini pricing failed:",
-            error.message
-        );
-
-
-        // --------------------------------------------------------
-        // Never invent pricing.
-        // --------------------------------------------------------
-
-        for (const tool of staleTools) {
-
-            tool.live_plans = [];
-
-        }
-    }
-}
-
-
-// ============================================================
-// RESPONSE
-// ============================================================
-
-const displayQuery =
-    searchTerms[0] || originalQuery;
-
-
-return res.json({
-
+return res.status(200).json({
     success: true,
-
     originalQuery,
-
-    displayQuery,
-    count: finalTools.length,
-    data: finalTools
-
+    displayQuery:
+        searchTerms[0] || originalQuery,
+    count: responseData.length,
+    data: responseData
 });
+    } catch (error) {
+        console.error(
+            "Search Error:",
+            error
+        );
 
-
-} catch (error) {
-
-    console.error(
-        "Search Error:",
-        error
-    );
-
-    return res.status(500).json({
-
-        success: false,
-
-        message: "Failed to search AI tools"
-
-    });
-
-}
-
+        return res.status(500).json({
+            success: false,
+            message: "Failed to search AI tools"
+        });
+    }
 };
-
-
-// ============================================================
-// EXPORT
-// ============================================================
 
 module.exports = {
     searchTools

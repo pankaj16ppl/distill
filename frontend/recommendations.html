@@ -71,461 +71,302 @@
   <script src="js/rating.js"></script>
   <script src="js/favorites.js"></script>
   <script src="js/recommendation-card.js"></script>
+<script>
+  requireAuth();
+  renderShell("recommendations");
 
-  <script>
-    requireAuth();
-    renderShell("recommendations");
+  let activeQueries = [];
 
-    let activeQueries = [];
+  const searchInput = document.getElementById('homeSearchInput');
+  const searchBtn = document.getElementById('homeSearchBtn');
+  const voiceSearchBtn = document.getElementById('voiceSearchBtn');
+  const addBtn = document.getElementById('addQueryBtn');
+  const activeTags = document.getElementById('activeTags');
+  const resultsBlocks = document.getElementById('resultsBlocks');
+  const emptyState = document.getElementById('emptyState');
+  const upArrowBtn = document.getElementById('upArrowBtn');
 
-    const searchInput = document.getElementById('homeSearchInput');
-    const searchBtn = document.getElementById('homeSearchBtn');
-    const voiceSearchBtn = document.getElementById('voiceSearchBtn');
-    const addBtn = document.getElementById('addQueryBtn');
-    const activeTags = document.getElementById('activeTags');
-    const resultsBlocks = document.getElementById('resultsBlocks');
-    const emptyState = document.getElementById('emptyState');
-    const upArrowBtn = document.getElementById('upArrowBtn');
+  // Voice Search
+  const SpeechRecognition =
+    window.SpeechRecognition || window.webkitSpeechRecognition;
 
-    // Voice Search
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRecognition) {
+    const recognition = new SpeechRecognition();
 
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
+    recognition.lang = "en-IN";
+    recognition.continuous = false;
+    recognition.interimResults = false;
 
-      recognition.lang = "en-IN";
-      recognition.continuous = false;
-      recognition.interimResults = false;
+    voiceSearchBtn.addEventListener("click", () => {
+      recognition.start();
 
-      voiceSearchBtn.addEventListener("click", () => {
-        recognition.start();
-
-        voiceSearchBtn.classList.add("bg-red-100", "text-red-500");
-        voiceSearchBtn.innerHTML =
-          '<i data-lucide="mic-off" class="w-5 h-5"></i>';
-
-        if (window.lucide) lucide.createIcons();
-      });
-
-      recognition.onresult = (event) => {
-        const voiceText = event.results[0][0].transcript;
-        searchInput.value = voiceText;
-        searchBtn.click();
-      };
-
-      recognition.onend = () => {
-        voiceSearchBtn.classList.remove("bg-red-100", "text-red-500");
-        voiceSearchBtn.innerHTML =
-          '<i data-lucide="mic" class="w-5 h-5"></i>';
-
-        if (window.lucide) lucide.createIcons();
-      };
-
-      recognition.onerror = (event) => {
-        console.log("Voice recognition error:", event.error);
-
-        voiceSearchBtn.classList.remove("bg-red-100", "text-red-500");
-        voiceSearchBtn.innerHTML =
-          '<i data-lucide="mic" class="w-5 h-5"></i>';
-
-        if (window.lucide) lucide.createIcons();
-      };
-    } else {
-      voiceSearchBtn.addEventListener("click", () => {
-        alert("Voice search is not supported in this browser. Please use Chrome.");
-      });
-    }
-
-    // Render tags
-    function renderTags() {
-      activeTags.innerHTML = activeQueries.map((q, i) => `
-        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-light text-green-dark text-xs font-semibold">
-          ${q}
-          <button class="remove-tag hover:text-red-500" data-index="${i}">
-            <i data-lucide="x" class="w-3 h-3"></i>
-          </button>
-        </span>
-      `).join('');
+      voiceSearchBtn.classList.add("bg-red-100", "text-red-500");
+      voiceSearchBtn.innerHTML =
+        '<i data-lucide="mic-off" class="w-5 h-5"></i>';
 
       if (window.lucide) lucide.createIcons();
+    });
 
-      document.querySelectorAll('.remove-tag').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const idx = parseInt(btn.dataset.index);
-          activeQueries.splice(idx, 1);
-          renderTags();
+    recognition.onresult = (event) => {
+      const voiceText = event.results[0][0].transcript;
+      searchInput.value = voiceText;
+      searchBtn.click();
+    };
 
-          if (activeQueries.length === 0) {
-            resultsBlocks.innerHTML = '';
-            emptyState.classList.remove('hidden');
-          } else {
-            performSearch(false);
-          }
-        });
+    recognition.onend = () => {
+      voiceSearchBtn.classList.remove("bg-red-100", "text-red-500");
+      voiceSearchBtn.innerHTML =
+        '<i data-lucide="mic" class="w-5 h-5"></i>';
+
+      if (window.lucide) lucide.createIcons();
+    };
+
+    recognition.onerror = (event) => {
+      console.log("Voice recognition error:", event.error);
+
+      voiceSearchBtn.classList.remove("bg-red-100", "text-red-500");
+      voiceSearchBtn.innerHTML =
+        '<i data-lucide="mic" class="w-5 h-5"></i>';
+
+      if (window.lucide) lucide.createIcons();
+    };
+  } else {
+    voiceSearchBtn.addEventListener("click", () => {
+      alert(
+        "Voice search is not supported in this browser. Please use Chrome."
+      );
+    });
+  }
+
+  // Render tags
+  function renderTags() {
+    activeTags.innerHTML = activeQueries.map((q, i) => `
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-green-light text-green-dark text-xs font-semibold">
+        ${q}
+        <button class="remove-tag hover:text-red-500" data-index="${i}">
+          <i data-lucide="x" class="w-3 h-3"></i>
+        </button>
+      </span>
+    `).join('');
+
+    if (window.lucide) lucide.createIcons();
+
+    document.querySelectorAll('.remove-tag').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.index);
+        activeQueries.splice(idx, 1);
+        renderTags();
+
+        if (activeQueries.length === 0) {
+          resultsBlocks.innerHTML = '';
+          emptyState.classList.remove('hidden');
+        } else {
+          performSearch(false);
+        }
+      });
+    });
+  }
+
+  const API_BASE = "http://localhost:5000/api";
+
+  // Fetch tools from backend
+  async function fetchToolsFromDb(query) {
+    const res = await fetch(
+      `http://localhost:5000/api/search?q=${encodeURIComponent(query)}`
+    );
+
+    if (!res.ok) {
+      throw new Error(`Search failed: ${res.status}`);
+    }
+
+    const json = await res.json();
+
+    if (!json.success) {
+      throw new Error(json.message || "Search failed");
+    }
+
+    return {
+      tools: Array.isArray(json.data) ? json.data : [],
+      displayQuery: json.displayQuery || query
+    };
+  }
+
+  // Convert database tool data into recommendation-card format
+  function mapDbToolToCard(row, query) {
+    const pricingRaw = (row.pricing || "hybrid").toLowerCase();
+
+    const pricing = ["free", "hybrid", "paid"].includes(pricingRaw)
+      ? pricingRaw
+      : "hybrid";
+
+    return {
+      id: row.id,
+      name: row.tool_name,
+      category: row.category || "AI Tool",
+      pricing,
+
+      description:
+        `Great for "${query}". ${row.description || ""}`,
+
+      best_use_cases:
+        row.best_use_cases || "",
+
+      pros: Array.isArray(row.pros)
+        ? row.pros
+        : [],
+
+      cons: Array.isArray(row.cons)
+        ? row.cons
+        : [],
+
+      rating: 0,
+
+      url: row.official_website || "#",
+
+      credits: row.pricing === "free"
+        ? "Free tier available"
+        : undefined,
+    };
+  }
+
+  // Main Search Function
+  async function performSearch(append = false) {
+    if (activeQueries.length === 0) {
+      resultsBlocks.innerHTML = '';
+      emptyState.classList.remove('hidden');
+      return;
+    }
+
+    emptyState.classList.add('hidden');
+
+    const fullQuery = activeQueries.join(" ");
+
+    const block = document.createElement('div');
+    block.className = 'results-block mt-8 page-enter';
+
+    if (append) {
+      resultsBlocks.appendChild(block);
+    } else {
+      resultsBlocks.innerHTML = '';
+      resultsBlocks.appendChild(block);
+    }
+
+    renderRecommendationSkeleton(block, 7);
+
+    let rows;
+    let displayQuery;
+
+    try {
+      const searchResult = await fetchToolsFromDb(fullQuery);
+
+      rows = searchResult.tools;
+      displayQuery = searchResult.displayQuery;
+
+      console.log("Original query:", fullQuery);
+      console.log("Display query:", displayQuery);
+
+    } catch (err) {
+      console.error("Search API error:", err);
+
+      block.innerHTML = `
+        <p class="text-center text-muted py-16">
+          Couldn't reach the server. Is the backend running on port 5000?
+        </p>
+      `;
+
+      return;
+    }
+
+    if (!rows.length) {
+      block.innerHTML = `
+        <p class="text-center text-muted py-16">
+          No AI tools matched "${displayQuery || fullQuery}" yet.
+        </p>
+      `;
+
+      return;
+    }
+
+    const toolsForCards = rows
+      .slice(0, 7)
+      .map((row) => mapDbToolToCard(row, displayQuery));
+
+    renderRecommendationCards(block, toolsForCards);
+
+    if (append) {
+      block.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
       });
     }
 
-    const API_BASE = "http://localhost:5000/api";
+    upArrowBtn.style.opacity =
+      resultsBlocks.children.length > 1 ? '1' : '0';
 
-    // Convert database tool data into recommendation-card format.
-    // query is the corrected displayQuery returned by the backend.
-    function mapDbToolToCard(row, query) {
-      const pricingRaw = (row.pricing || "hybrid").toLowerCase();
-      const pricing = ["free", "hybrid", "paid"].includes(pricingRaw)
-        ? pricingRaw
-        : "hybrid";
+    upArrowBtn.style.pointerEvents =
+      resultsBlocks.children.length > 1 ? 'auto' : 'none';
+  }
 
-      function mapDbToolToCard(row, query) {
-      const pricingRaw = (row.pricing || "hybrid").toLowerCase();
-      const pricing = ["free", "hybrid", "paid"].includes(pricingRaw)
-        ? pricingRaw
-        : "hybrid";
+  // Search button
+  searchBtn.addEventListener('click', () => {
+    const val = searchInput.value.trim();
 
-      return {
-        id: row.id,
-        name: row.tool_name,
-        category: row.category || "AI Tool",
-        pricing,
-        description: `Great for "${query}". ${row.description || ""}`,
-        best_use_cases: row.best_use_cases || "",
+    if (!val) return;
 
-pros: Array.isArray(row.pros)
-  ? row.pros
-  : [],
+    activeQueries = [val];
 
-cons: Array.isArray(row.cons)
-  ? row.cons
-  : [],
-        rating: 0,
-        url: row.official_website || "#",
-        credits: row.pricing === "free"
-          ? "Free tier available"
-          : undefined,
-      };
-    }
-
-    async function fetchToolsFromDb(query) {
-      const res = await fetch(
-        `${API_BASE}/search?q=${encodeURIComponent(query)}`
-      );
-
-      if (!res.ok) {
-        throw new Error(`Search failed: ${res.status}`);
-      }
-
-      const json = await res.json();
-
-      if (!json.success) {
-        throw new Error(json.message || "Search failed");
-      }
-
-      return {
-        tools: Array.isArray(json.data) ? json.data : [],
-        displayQuery: json.displayQuery || query
-      };
-    }
-
-    // Main Search Function
-    async function performSearch(append = false) {
-      if (activeQueries.length === 0) {
-        resultsBlocks.innerHTML = '';
-        emptyState.classList.remove('hidden');
-        return;
-      }
-
-      emptyState.classList.add('hidden');
-
-      const fullQuery = activeQueries.join(" ");
-
-      const block = document.createElement('div');
-      block.className = 'results-block mt-8 page-enter';
-
-      if (append) {
-        resultsBlocks.appendChild(block);
-      } else {
-        resultsBlocks.innerHTML = '';
-        resultsBlocks.appendChild(block);
-      }
-
-      renderRecommendationSkeleton(block, 7);
-
-      let rows;
-      let displayQuery;
-
-      try {
-        const searchResult = await fetchToolsFromDb(fullQuery);
-
-        rows = searchResult.tools;
-        displayQuery = searchResult.displayQuery;
-
-        console.log("Original query:", fullQuery);
-        console.log("Display query:", displayQuery);
-      } catch (err) {
-        console.error("Search API error:", err);
-
-        block.innerHTML = `
-          <p class="text-center text-muted py-16">
-            Couldn't reach the server. Is the backend running on port 5000?
-          </p>
-        `;
-
-        return;
-      }
-
-      if (!rows.length) {
-        block.innerHTML = `
-          <p class="text-center text-muted py-16">
-            No AI tools matched "${displayQuery || fullQuery}" yet.
-          </p>
-        `;
-
-        return;
-      }
-
-      const toolsForCards = rows
-        .slice(0, 7)
-        .map((row) => mapDbToolToCard(row, displayQuery));
-
-      renderRecommendationCards(block, toolsForCards);
-
-      if (append) {
-        block.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start'
-        });
-      }
-
-      upArrowBtn.style.opacity =
-        resultsBlocks.children.length > 1 ? '1' : '0';
-
-      upArrowBtn.style.pointerEvents =
-        resultsBlocks.children.length > 1 ? 'auto' : 'none';
-    }
-
-    // Search button
-    searchBtn.addEventListener('click', () => {
-      const val = searchInput.value.trim();
-
-      if (!val) return;
-
-      activeQueries = [val];
-
-      history.replaceState(
-        null,
-        "",
-        `recommendations.html?q=${encodeURIComponent(val)}`
-      );
-
-      renderTags();
-      performSearch(false);
-    });
-
-    // Enter key
-    searchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        searchBtn.click();
-      }
-    });
-
-    // Add query
-    addBtn.addEventListener('click', () => {
-      const val = searchInput.value.trim();
-
-      if (!val) return;
-
-      activeQueries.push(val);
-      renderTags();
-
-      searchInput.value = '';
-      performSearch(true);
-    });
-
-    // Scroll to top
-    upArrowBtn.addEventListener('click', () => {
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    });
-
-    // Initialize
-    const params = new URLSearchParams(window.location.search);
-    const initialQuery = params.get("q");
-
-    if (initialQuery) {
-      activeQueries = [initialQuery];
-      searchInput.value = initialQuery;
-    }
+    history.replaceState(
+      null,
+      "",
+      `recommendations.html?q=${encodeURIComponent(val)}`
+    );
 
     renderTags();
+    performSearch(false);
+  });
 
-    if (activeQueries.length > 0) {
-      performSearch(false);
+  // Enter key
+  searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      searchBtn.click();
     }
-  </script>
-</body>
-</html>
+  });
 
+  // Add query
+  addBtn.addEventListener('click', () => {
+    const val = searchInput.value.trim();
 
-    async function fetchToolsFromDb(query) {
-      const res = await fetch(
-        `${API_BASE}/search?q=${encodeURIComponent(query)}`
-      );
+    if (!val) return;
 
-      if (!res.ok) {
-        throw new Error(`Search failed: ${res.status}`);
-      }
-
-      const json = await res.json();
-
-      if (!json.success) {
-        throw new Error(json.message || "Search failed");
-      }
-
-      return {
-        tools: Array.isArray(json.data) ? json.data : [],
-        displayQuery: json.displayQuery || query
-      };
-    }
-
-    // Main Search Function
-    async function performSearch(append = false) {
-      if (activeQueries.length === 0) {
-        resultsBlocks.innerHTML = '';
-        emptyState.classList.remove('hidden');
-        return;
-      }
-
-      emptyState.classList.add('hidden');
-
-      const fullQuery = activeQueries.join(" ");
-
-      const block = document.createElement('div');
-      block.className = 'results-block mt-8 page-enter';
-
-      if (append) {
-        resultsBlocks.appendChild(block);
-      } else {
-        resultsBlocks.innerHTML = '';
-        resultsBlocks.appendChild(block);
-      }
-
-      renderRecommendationSkeleton(block, 7);
-
-      let rows;
-      let displayQuery;
-
-      try {
-        const searchResult = await fetchToolsFromDb(fullQuery);
-
-        rows = searchResult.tools;
-        displayQuery = searchResult.displayQuery;
-
-        console.log("Original query:", fullQuery);
-        console.log("Display query:", displayQuery);
-      } catch (err) {
-        console.error("Search API error:", err);
-
-        block.innerHTML = `
-          <p class="text-center text-muted py-16">
-            Couldn't reach the server. Is the backend running on port 5000?
-          </p>
-        `;
-
-        return;
-      }
-
-      if (!rows.length) {
-        block.innerHTML = `
-          <p class="text-center text-muted py-16">
-            No AI tools matched "${displayQuery || fullQuery}" yet.
-          </p>
-        `;
-
-        return;
-      }
-
-      const toolsForCards = rows
-        .slice(0, 7)
-        .map((row) => mapDbToolToCard(row, displayQuery));
-
-      renderRecommendationCards(block, toolsForCards);
-
-      if (append) {
-        block.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start'
-        });
-      }
-
-      upArrowBtn.style.opacity =
-        resultsBlocks.children.length > 1 ? '1' : '0';
-
-      upArrowBtn.style.pointerEvents =
-        resultsBlocks.children.length > 1 ? 'auto' : 'none';
-    }
-
-    // Search button
-    searchBtn.addEventListener('click', () => {
-      const val = searchInput.value.trim();
-
-      if (!val) return;
-
-      activeQueries = [val];
-
-      history.replaceState(
-        null,
-        "",
-        `recommendations.html?q=${encodeURIComponent(val)}`
-      );
-
-      renderTags();
-      performSearch(false);
-    });
-
-    // Enter key
-    searchInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') {
-        searchBtn.click();
-      }
-    });
-
-    // Add query
-    addBtn.addEventListener('click', () => {
-      const val = searchInput.value.trim();
-
-      if (!val) return;
-
-      activeQueries.push(val);
-      renderTags();
-
-      searchInput.value = '';
-      performSearch(true);
-    });
-
-    // Scroll to top
-    upArrowBtn.addEventListener('click', () => {
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth'
-      });
-    });
-
-    // Initialize
-    const params = new URLSearchParams(window.location.search);
-    const initialQuery = params.get("q");
-
-    if (initialQuery) {
-      activeQueries = [initialQuery];
-      searchInput.value = initialQuery;
-    }
-
+    activeQueries.push(val);
     renderTags();
 
-    if (activeQueries.length > 0) {
-      performSearch(false);
-    }
-  </script>
+    searchInput.value = '';
+    performSearch(true);
+  });
+
+  // Scroll to top
+  upArrowBtn.addEventListener('click', () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  });
+
+  // Initialize
+  const params = new URLSearchParams(window.location.search);
+  const initialQuery = params.get("q");
+
+  if (initialQuery) {
+    activeQueries = [initialQuery];
+    searchInput.value = initialQuery;
+  }
+
+  renderTags();
+
+  if (activeQueries.length > 0) {
+    performSearch(false);
+  }
+</script>
 </body>
 </html>

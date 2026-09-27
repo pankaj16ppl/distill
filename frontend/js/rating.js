@@ -9,7 +9,7 @@ function getAuthToken() {
 
 
 // Submit a rating
-async function setRating(toolId, stars) {
+async function setRating(toolId, stars, comment = "") {
     try {
         const token = getAuthToken();
 

@@ -31,38 +31,91 @@ const PAGE_TITLES = {
   profile: "Profile",
 };
 function historyPreviewMarkup() {
-  const items = getHistory().slice(0, 5);
-  if (!items.length) return `<p class="text-xs text-muted truncate">`;
-  return items.map((h) => `
-    <button class="history-run w-full flex items-center gap-3 px-4 py-2.5 text-left rounded-xl nav-link hover:bg-green-light/60"
-      data-history-id="${h.id}"
-data-query="${escapeHtml(h.query)}"
-    >
-      <i data-lucide="clock" class="w-4 h-4 text-gray-400 shrink-0"></i>
-      <span class="flex-1 text-sm text-gray-500 truncate">${escapeHtml(h.query)}</span>
-      <span class="text-xs text-gray-400 shrink-0">${relativeTime(h.time)}</span>
-    </button>`).join("");
+  try {
+    const items =
+      typeof getHistory === "function"
+        ? getHistory().slice(0, 5)
+        : [];
+
+    if (!items.length) {
+      return `
+        <p class="px-4 py-3 text-sm text-muted">
+          No searches yet.
+        </p>
+      `;
+    }
+
+    return items.map((h) => `
+      <button
+        class="history-run w-full flex items-center gap-3 px-4 py-2.5 text-left rounded-xl nav-link hover:bg-green-light/60"
+        data-history-id="${h.id}"
+        data-query="${escapeHtml(h.query)}"
+      >
+        <i
+          data-lucide="clock"
+          class="w-4 h-4 text-gray-400 shrink-0"
+        ></i>
+
+        <span class="flex-1 text-sm text-gray-500 truncate">
+          ${escapeHtml(h.query)}
+        </span>
+
+        <span class="text-xs text-gray-400 shrink-0">
+          ${
+            typeof relativeTime === "function"
+              ? relativeTime(h.time)
+              : ""
+          }
+        </span>
+      </button>
+    `).join("");
+
+  } catch (error) {
+    console.error("History preview error:", error);
+
+    return `
+      <p class="px-4 py-3 text-sm text-muted">
+        No searches yet.
+      </p>
+    `;
+  }
 }
 function historyAllMarkup() {
-  const items = getHistory();
+  try {
+    const items =
+      typeof getHistory === "function"
+        ? getHistory()
+        : [];
 
-  if (!items.length) {
+    if (!items.length) {
+      return `<p class="px-4 py-3 text-sm text-muted">No searches yet.</p>`;
+    }
+
+    return items.map((h) => `
+      <button
+        class="history-run w-full flex items-center gap-3 px-4 py-2.5 text-left rounded-xl nav-link hover:bg-green-light/60"
+        data-history-id="${h.id}"
+        data-query="${escapeHtml(h.query)}"
+      >
+        <i data-lucide="clock" class="w-4 h-4 text-gray-400 shrink-0"></i>
+        <span class="flex-1 text-sm text-gray-500 truncate">
+          ${escapeHtml(h.query)}
+        </span>
+        <span class="text-xs text-gray-400 shrink-0">
+          ${
+            typeof relativeTime === "function"
+              ? relativeTime(h.time)
+              : ""
+          }
+        </span>
+      </button>
+    `).join("");
+
+  } catch (error) {
+    console.error("History list error:", error);
     return `<p class="px-4 py-3 text-sm text-muted">No searches yet.</p>`;
   }
-
-  return items.map((h) => `
-  <button
-    class="history-run w-full flex items-center gap-3 px-4 py-2.5 text-left rounded-xl nav-link hover:bg-green-light/60"
-    data-history-id="${h.id}"
-    data-query="${escapeHtml(h.query)}"
-  >
-    <i data-lucide="clock" class="w-4 h-4 text-gray-400 shrink-0"></i>
-    <span class="flex-1 text-sm text-gray-500 truncate">${escapeHtml(h.query)}</span>
-    <span class="text-xs text-gray-400 shrink-0">${relativeTime(h.time)}</span>
-  </button>
-`).join("");
 }
-
 function navLinksMarkup(active) {
   return NAV_ITEMS.map((item) => {
     const isActive = item.id === active;
@@ -83,22 +136,25 @@ function userCardMarkup(user, logoutId) {
       <a href="profile.html" class="w-9 h-9 rounded-full bg-green-light text-green-dark font-bold flex items-center justify-center text-sm shrink-0">${initial}</a>
       <div class="min-w-0 flex-1">
         <p class="text-sm font-semibold truncate">${escapeHtml(user?.name || "")}</p>
-        <p class="tconst NAV_ITEMS = ext-xs text-muted truncate">${escapeHtml(user?.email || "")}</p>
+        <p class="text-xs text-muted truncate">${escapeHtml(user?.email || "")}</p>
       </div>
       <button id="${logoutId}" title="Log out" class="btn-scale w-8 h-8 rounded-lg flex items-center justify-center text-muted hover:text-red-500 hover:bg-red-50 shrink-0">
         <i data-lucide="log-out" class="w-4 h-4"></i>
       </button>
     </div>`;
 }
-
 function renderShell(active) {
-  const user = currentUser();
+const user =
+  typeof currentUser === "function"
+  
+    ? currentUser()
+    : null;
   const sidebarRoot = document.getElementById("sidebar-root");
   const topnavRoot = document.getElementById("topnav-root");
 
   if (sidebarRoot) {
     sidebarRoot.innerHTML = `
-      <aside class="hidden lg:flex w-64 shrink-0 flex-col border-r border-line bg-white h-screen sticky top-0 py-6 px-4">
+      <aside class="flex w-64 shrink-0 flex-col border-r border-line bg-white h-screen sticky top-0 py-6 px-4">
         <a href="dashboard.html" class="flex items-center gap-2.5 px-2 mb-8">
   <img src="assets/distill-logo.png" alt="Distill" class="w-12 h-12 object-contain">
   <span class="text-lg font-bold tracking-tight">Distill</span>
@@ -161,91 +217,130 @@ ${userCardMarkup(user, "sidebarLogout")}
         </div>
       </div>`;
   }
-
   // Mobile drawer open/close
   const drawer = document.getElementById("mobileDrawer");
   const overlay = document.getElementById("drawerOverlay");
-  const openDrawer = () => { drawer?.classList.add("open"); overlay?.classList.add("open"); };
-  const closeDrawer = () => { drawer?.classList.remove("open"); overlay?.classList.remove("open"); };
-  document.getElementById("drawerToggle")?.addEventListener("click", openDrawer);
-  document.getElementById("drawerClose")?.addEventListener("click", closeDrawer);
+
+  const openDrawer = () => {
+    drawer?.classList.add("open");
+    overlay?.classList.add("open");
+  };
+
+  const closeDrawer = () => {
+    drawer?.classList.remove("open");
+    overlay?.classList.remove("open");
+  };
+
+  document
+    .getElementById("drawerToggle")
+    ?.addEventListener("click", openDrawer);
+
+  document
+    .getElementById("drawerClose")
+    ?.addEventListener("click", closeDrawer);
+
   overlay?.addEventListener("click", closeDrawer);
-         // Show more / show less history
-const showMoreHistory = document.getElementById("showMoreHistory");
-const sidebarHistory = document.getElementById("sidebarHistory");
 
-showMoreHistory?.addEventListener("click", () => {
-  const expanded = showMoreHistory.dataset.expanded === "true";
 
-  if (!expanded) {
-    sidebarHistory.innerHTML = historyAllMarkup();
-    sidebarHistory.classList.add("max-h-64", "overflow-y-auto");
+  // Show more / show less history
+  const showMoreHistory =
+    document.getElementById("showMoreHistory");
 
-    showMoreHistory.textContent = "Show less ↑";
-    showMoreHistory.dataset.expanded = "true";
-  } else {
-    sidebarHistory.innerHTML = historyPreviewMarkup();
+  const sidebarHistory =
+    document.getElementById("sidebarHistory");
 
-    showMoreHistory.textContent = "Show more →";
-    showMoreHistory.dataset.expanded = "false";
-  }
+  showMoreHistory?.addEventListener("click", () => {
+    const expanded =
+      showMoreHistory.dataset.expanded === "true";
 
-  if (window.lucide) lucide.createIcons();
-});
+    if (!expanded) {
+      sidebarHistory.innerHTML =
+        historyAllMarkup();
 
-/* =========================================================
-   HISTORY ITEM CLICK
-   ========================================================= */
+      sidebarHistory.classList.add(
+        "max-h-64",
+        "overflow-y-auto"
+      );
 
-sidebarHistory?.addEventListener("click", (event) => {
+      showMoreHistory.textContent =
+        "Show less ↑";
 
-  const historyButton =
-    event.target.closest(".history-run");
+      showMoreHistory.dataset.expanded =
+        "true";
 
-  if (!historyButton) {
-    return;
-  }
+    } else {
+      sidebarHistory.innerHTML =
+        historyPreviewMarkup();
 
-  const query =
-    historyButton.dataset.query;
+      showMoreHistory.textContent =
+        "Show more →";
 
-  if (!query) {
-    return;
-  }
+      showMoreHistory.dataset.expanded =
+        "false";
+    }
 
-  window.location.href =
-    `home.html?q=${encodeURIComponent(query)}`;
-});
-// Open a history search
-sidebarHistory?.addEventListener("click", (event) => {
-  const historyButton = event.target.closest(".history-run");
+    if (window.lucide) {
+      lucide.createIcons();
+    }
+  });
 
-  if (!historyButton) {
-    return;
-  }
 
-  const query = historyButton.dataset.query;
+  /* =========================================================
+     HISTORY ITEM CLICK
+     ========================================================= */
 
-  if (!query) {
-    return;
-  }
+  sidebarHistory?.addEventListener("click", (event) => {
+    const historyButton =
+      event.target.closest(".history-run");
 
-  window.location.href =
-    `home.html?q=${encodeURIComponent(query)}`;
-});
-  
+    if (!historyButton) {
+      return;
+    }
+
+    const query =
+      historyButton.dataset.query;
+
+    if (!query) {
+      return;
+    }
+
+    window.location.href =
+      `home.html?q=${encodeURIComponent(query)}`;
+  });
+
+
   // Logout (desktop + mobile sidebar)
-  document.getElementById("sidebarLogout")?.addEventListener("click", logoutUser);
-  document.getElementById("sidebarLogoutMobile")?.addEventListener("click", logoutUser);
-   
-  if (window.lucide) lucide.createIcons();
+  document
+    .getElementById("sidebarLogout")
+    ?.addEventListener("click", logoutUser);
+
+  document
+    .getElementById("sidebarLogoutMobile")
+    ?.addEventListener("click", logoutUser);
+
+
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+
 }
 
+
+// =========================================================
+// Footer
+// =========================================================
+
 function renderFooter() {
-  const root = document.getElementById("footer-root");
-  if (!root) return;
+  const root =
+    document.getElementById("footer-root");
+
+  if (!root) {
+    return;
+  }
+
   root.innerHTML = `
     <footer class="border-t border-line py-6 px-6 lg:px-10 text-center text-xs text-muted">
       © ${new Date().getFullYear()} Distill — AI tool recommendations for professionals.
-    </footer>`;
+    </footer>
+  `;
 }

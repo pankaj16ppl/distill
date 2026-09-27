@@ -71,13 +71,17 @@ console.log("### NEW RECOMMENDATION CARD JS LOADED ###");
     typeof window.getMyRating === "function";
 
   const mockStore = {}; // toolId -> { sum, count, mine }
+const ratingApi = hasRealApi
+  ? {
+      submit: (toolId, stars, review) =>
+        window.setRating(toolId, stars, review),
 
-  const ratingApi = hasRealApi
-    ? {
-        submit: (toolId, stars) => window.setRating(toolId, stars),
-        getSummary: (toolId) => window.getToolRating(toolId),
-        getMine: (toolId) => window.getMyRating(toolId),
-      }
+      getSummary: (toolId) =>
+        window.getToolRating(toolId),
+
+      getMine: (toolId) =>
+        window.getMyRating(toolId),
+    }
     : {
         submit: async (toolId, stars) => {
           const entry = (mockStore[toolId] ||= { sum: 0, count: 0, mine: 0 });
@@ -292,7 +296,97 @@ function getUsageInfo(tool) {
 
   return null;
 }
+function validateReviewComment(comment) {
+    const value = String(comment || "").trim();
 
+    // Empty review
+    if (!value) {
+        return {
+            valid: false,
+            message: "Please write a review."
+        };
+    }
+
+    // Length
+    if (value.length < 10) {
+        return {
+            valid: false,
+            message: "Review must contain at least 10 characters."
+        };
+    }
+
+    if (value.length > 500) {
+        return {
+            valid: false,
+            message: "Review must not exceed 500 characters."
+        };
+    }
+
+    // No URLs
+    if (/https?:\/\/|www\./i.test(value)) {
+        return {
+            valid: false,
+            message: "Links are not allowed in reviews."
+        };
+    }
+
+    // No emoji or unusual/special symbols.
+    // Allows:
+    // letters, numbers, spaces
+    // . , ! ? ' " ( ) - : ;
+    if (/[^\p{L}\p{N}\s.,!?'"()\-:;]/u.test(value)) {
+        return {
+            valid: false,
+            message: "Emojis and unsupported special symbols are not allowed."
+        };
+    }
+
+    // Reject the same character 5+ times consecutively.
+    // Examples:
+    // !!!!! 
+    // ?????
+    // aaaaa
+    // .....
+    // 11111
+    if (/(.)\1{4,}/u.test(value)) {
+        return {
+            valid: false,
+            message: "Repeated characters are not allowed."
+        };
+    }
+
+    // Reject repeated punctuation at the beginning.
+    if (/^[.,!?;:'"()-]{5,}/u.test(value)) {
+        return {
+            valid: false,
+            message: "Repeated symbols at the beginning are not allowed."
+        };
+    }
+
+    // Reject repeated punctuation at the end.
+    if (/[.,!?;:'"()-]{5,}$/u.test(value)) {
+        return {
+            valid: false,
+            message: "Repeated symbols at the end are not allowed."
+        };
+    }
+
+    // Reject the same short word repeated 3+ times.
+    // Example:
+    // "good good good"
+    // "best best best best"
+    if (/\b([a-zA-Z]{2,20})(?:\s+\1){2,}\b/i.test(value)) {
+        return {
+            valid: false,
+            message: "Repeated words are not allowed."
+        };
+    }
+
+    return {
+        valid: true,
+        message: ""
+    };
+}
   function cardMarkup(tool, isMain) {
   const displayName =
   String(tool.tool_name || tool.name || "Unknown Tool").trim();
@@ -569,23 +663,76 @@ ${
               </div>
             </div>
           </div>
-
           <div class="rcard-back">
-            <button type="button" class="rcard-back-close" data-action="flip-back" aria-label="Close rating, back to card">${closeSvg()}</button>
+            <button
+              type="button"
+              class="rcard-back-close"
+              data-action="flip-back"
+              aria-label="Close rating, back to card"
+            >
+              ${closeSvg()}
+            </button>
+
             <p class="rcard-back-label">Distill Rating</p>
-            <p class="rcard-back-name">${escapeHtml(tool.name)}</p>
+
+            <p class="rcard-back-name">
+              ${escapeHtml(tool.name)}
+            </p>
 
             <fieldset class="rcard-star-input" data-role="star-input">
-              <legend class="rcard-visually-hidden" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)">Rate ${escapeHtml(tool.name)} from 1 to 5 stars</legend>
+              <legend
+                class="rcard-visually-hidden"
+                style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)"
+              >
+                Rate ${escapeHtml(tool.name)} from 1 to 5 stars
+              </legend>
+
               ${starsInput}
             </fieldset>
 
-            <button type="button" class="rcard-btn rcard-btn--primary" data-action="submit-rating" disabled style="min-width:120px">
+            <div
+  class="rcard-review-box"
+  data-role="review-box"
+>
+              <label
+                for="${cardId}-review"
+                class="rcard-review-label"
+              >
+                Write a review
+              </label>
+
+              <textarea
+                id="${cardId}-review"
+                class="rcard-review-input"
+                data-role="review-comment"
+                rows="3"
+                maxlength="500"
+                placeholder="Share your experience with this tool..."
+              ></textarea>
+            </div>
+
+            <button
+              type="button"
+              class="rcard-btn rcard-btn--primary"
+              data-action="submit-rating"
+              disabled
+              style="min-width:120px"
+            >
               Submit
             </button>
-            <p class="rcard-my-rating-note" data-role="my-rating-note" hidden></p>
+
+            <p
+              class="rcard-my-rating-note"
+              data-role="my-rating-note"
+              hidden
+            ></p>
+
             <p class="rcard-back-summary">
-              Average <strong data-role="back-average">—</strong> · <span data-role="back-count">0</span> users
+              Average
+              <strong data-role="back-average">—</strong>
+              ·
+              <span data-role="back-count">0</span>
+              users
             </p>
           </div>
 
@@ -630,6 +777,24 @@ ${
     const input = cardEl.querySelector(`.rcard-star-input input[value="${value}"]`);
     if (input) input.checked = true;
     const submitBtn = cardEl.querySelector('[data-action="submit-rating"]');
+    const reviewInput = cardEl.querySelector(
+    '[data-role="review-comment"]'
+);
+
+if (reviewInput) {
+
+    reviewInput.addEventListener("click", (e) => {
+        e.stopPropagation();
+    });
+
+    reviewInput.addEventListener("paste", (e) => {
+        e.preventDefault();
+    });
+
+    reviewInput.addEventListener("drop", (e) => {
+        e.preventDefault();
+    });
+}
     if (submitBtn) submitBtn.disabled = !value;
   }
 
@@ -659,6 +824,28 @@ ${
       }
     }
     setFlipped(false);
+    // Review input protection
+const reviewInput = cardEl.querySelector(
+    '[data-role="review-comment"]'
+);
+
+if (reviewInput) {
+
+    // Prevent the textarea from triggering the card flip
+    reviewInput.addEventListener("click", (e) => {
+        e.stopPropagation();
+    });
+
+    // Prevent paste
+    reviewInput.addEventListener("paste", (e) => {
+        e.preventDefault();
+    });
+
+    // Prevent drag-and-drop text
+    reviewInput.addEventListener("drop", (e) => {
+        e.preventDefault();
+    });
+}
 
     const flipTriggers = cardEl.querySelectorAll('[data-action="flip"], [data-action="flip-back"]');
     flipTriggers.forEach((btn) => {
@@ -686,11 +873,19 @@ ${
     // the explicit ✕ close button — turn the card back to the front.
     // The dedicated flip/flip-back buttons above already call
     // e.stopPropagation(), so this listener never double-toggles them.
-    cardEl.addEventListener("click", (e) => {
-      if (e.target.closest("a, button, input, label")) return;
-      setFlipped(!cardEl.classList.contains("is-flipped"));
-    });
+  cardEl.addEventListener("click", (e) => {
+    if (
+        e.target.closest(
+            "a, button, input, label, textarea"
+        )
+    ) {
+        return;
+    }
 
+    setFlipped(
+        !cardEl.classList.contains("is-flipped")
+    );
+});
     // Optional bonus: long-press the card front also flips it (kept from
     // this project's existing UX), without breaking keyboard/click access.
     let pressTimer = null;
@@ -710,45 +905,119 @@ ${
     });
 
     // Star selection preview + enabling Submit
-    const starInputEl = cardEl.querySelector('[data-role="star-input"]');
-    starInputEl.addEventListener("change", (e) => {
-      if (e.target.matches('input[type="radio"]')) {
-        setBackStarSelection(cardEl, e.target.value);
-      }
+
+const starInputEl = cardEl.querySelector(
+    '[data-role="star-input"]'
+);
+
+starInputEl.addEventListener("change", (e) => {
+    if (!e.target.matches('input[type="radio"]')) {
+        return;
+    }
+
+    setBackStarSelection(
+        cardEl,
+        e.target.value
+    );
+
+    const reviewBox = cardEl.querySelector(
+        '[data-role="review-box"]'
+    );
+
+    if (reviewBox) {
+        reviewBox.style.display = "block";
+    }
+});
+
+
+// Submit rating
+
+const submitBtn = cardEl.querySelector(
+    '[data-action="submit-rating"]'
+);
+
+submitBtn.addEventListener("click", async () => {
+
+    const checked = cardEl.querySelector(
+        '.rcard-star-input input:checked'
+    );
+
+    if (!checked) {
+        return;
+    }
+
+    const stars = Number(checked.value);
+
+    const reviewInput = cardEl.querySelector(
+        '[data-role="review-comment"]'
+    );
+if (reviewInput) {
+
+    reviewInput.addEventListener("click", (e) => {
+        e.stopPropagation();
     });
 
-    const submitBtn = cardEl.querySelector('[data-action="submit-rating"]');
-    submitBtn.addEventListener("click", async () => {
-      const checked = cardEl.querySelector('.rcard-star-input input:checked');
-      if (!checked) return;
-      const stars = Number(checked.value);
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Saving…";
-      try {
-        await ratingApi.submit(toolId, stars);
+    reviewInput.addEventListener("paste", (e) => {
+        e.preventDefault();
+    });
+
+    reviewInput.addEventListener("drop", (e) => {
+        e.preventDefault();
+    });
+}
+    const comment = reviewInput
+        ? reviewInput.value.trim()
+        : "";
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Saving…";
+
+    try {
+
+        await ratingApi.submit(
+            toolId,
+            stars,
+            comment
+        );
+
         submitBtn.textContent = "Saved ✓";
-        await refreshRatingDisplay(cardEl, toolId);
+
+        await refreshRatingDisplay(
+            cardEl,
+            toolId
+        );
+
         setTimeout(() => {
-          setFlipped(false);
-          submitBtn.textContent = "Submit";
+            setFlipped(false);
+            submitBtn.textContent = "Submit";
         }, 700);
-      } catch (err) {
+
+    } catch (err) {
+
         submitBtn.disabled = false;
         submitBtn.textContent = "Submit";
-        const note = cardEl.querySelector('[data-role="my-rating-note"]');
-        const message = err && err.message ? err.message : "Failed to submit rating.";
-        if (note) {
-          note.hidden = false;
-          note.textContent =
-            message === "Please login first"
-              ? "Log in to rate this tool."
-              : message.includes("already rated")
-                ? "You've already rated this tool."
-                : message;
-        }
-      }
-    });
 
+        const note = cardEl.querySelector(
+            '[data-role="my-rating-note"]'
+        );
+
+        const message =
+            err && err.message
+                ? err.message
+                : "Failed to submit rating.";
+
+        if (note) {
+            note.hidden = false;
+
+            note.textContent =
+                message === "Please login first"
+                    ? "Log in to rate this tool."
+                    : message.includes("already rated")
+                        ? "You've already rated this tool."
+                        : message;
+        }
+    }
+});
     // Pre-check whether the user already rated this tool — the backend
     // rejects a second rating (409), so lock the star input to their
     // existing choice instead of letting them try and fail.
@@ -756,17 +1025,24 @@ ${
       const mine = await ratingApi.getMine(toolId);
       const value = mine && (mine.rating ?? mine);
       if (value) {
-        setBackStarSelection(cardEl, value);
-        cardEl.querySelectorAll('.rcard-star-input input').forEach((i) => (i.disabled = true));
-        submitBtn.disabled = true;
-        submitBtn.textContent = "Rated ✓";
+    setBackStarSelection(cardEl, value);
+
+    cardEl
+        .querySelectorAll('.rcard-star-input input')
+        .forEach((i) => {
+            i.disabled = true;
+        });
+
+    // The user can still add/edit a review.
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Save Review";
+}
         const note = cardEl.querySelector('[data-role="my-rating-note"]');
         if (note) {
           note.hidden = false;
           note.textContent = `You rated this ${value} star${value > 1 ? "s" : ""}.`;
         }
-      }
-    } catch (err) {
+          } catch (err) {
       // Not logged in / offline — leave the input open, submit will surface the real error.
     }
 
