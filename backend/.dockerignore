@@ -1,7 +1,0 @@
-# Files the backend image build should skip.
-# Keeps the image small and stops secrets from ever being baked into it.
-
-node_modules
-.env
-*.backup
-npm-debug.log
