@@ -5,7 +5,7 @@ const {
     saveHistory,
     fetchHistory,
     removeHistory
-} = require("../controllers/historycontroller");
+} = require("../controllers/historyController");
 
 const authMiddleware = require("../middleware/authmiddleware");
 
