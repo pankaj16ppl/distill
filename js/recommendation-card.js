@@ -396,6 +396,7 @@ console.log("CARD NORMALIZED LIVE DATA:", {
     return `
       <div class="rcard rcard-enter ${isMain ? "rcard--main" : ""}" data-tool-id="${escapeHtml(tool.id)}" id="${cardId}">
         ${isMain ? `<span class="rcard-badge-main">${crownSvg()} Most Recommended</span>` : ""}
+        ${window.favoriteStarMarkup ? window.favoriteStarMarkup("tool", tool.id) : ""}
         <div class="rcard-inner">
 
           <div class="rcard-front">
@@ -637,6 +638,14 @@ ${
     const front = cardEl.querySelector(".rcard-front");
     const back = cardEl.querySelector(".rcard-back");
 
+    // Favorite star (new feature, independent of everything else on the
+    // card — sits as a direct child of .rcard so it never flips with the
+    // rating card and never affects the front/back layout).
+    const favStarBtn = cardEl.querySelector(".distill-fav-star");
+    if (favStarBtn && typeof window.wireFavoriteStarButton === "function") {
+      window.wireFavoriteStarButton(favStarBtn, "tool", toolId, tool);
+    }
+
     // Both faces exist in the DOM at all times (the flip is a pure CSS
     // transform), so without this, a keyboard user could Tab into
     // whichever face is currently rotated out of view — a real focus-
@@ -824,4 +833,3 @@ ${
   window.renderRecommendationCards = renderRecommendationCards;
   window.renderRecommendationSkeleton = renderRecommendationSkeleton;
 })();
-

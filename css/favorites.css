@@ -1,0 +1,90 @@
+/* css/favorites.css
+ *
+ * Styles for the new Favorite feature only. Nothing in here overrides or
+ * touches an existing class from css/styles.css or css/recommendation-card.css.
+ */
+
+.distill-fav-star {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 30;
+
+  width: 30px;
+  height: 30px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 0;
+
+  transition: transform 150ms ease, color 150ms ease, background 150ms ease,
+    border-color 150ms ease;
+}
+
+.distill-fav-star:hover {
+  transform: scale(1.08);
+  color: #d8a400;
+  border-color: #f5d98a;
+}
+
+.distill-fav-star:active {
+  transform: scale(0.92);
+}
+
+.distill-fav-star.is-favorited {
+  color: #f5b301;
+  border-color: #f5b301;
+  background: #fffbea;
+}
+
+.distill-fav-star:disabled {
+  opacity: 0.6;
+  cursor: default;
+  transform: none;
+}
+
+.distill-fav-star-icon {
+  width: 16px;
+  height: 16px;
+}
+
+/* The compact trending-grid cards are shorter, so give the star a
+   slightly smaller footprint there. */
+.rec-card > .distill-fav-star {
+  top: 8px;
+  right: 8px;
+  width: 26px;
+  height: 26px;
+}
+
+.rec-card > .distill-fav-star .distill-fav-star-icon {
+  width: 14px;
+  height: 14px;
+}
+
+/* favorites.html empty state */
+.distill-fav-empty {
+  text-align: center;
+  padding: 72px 20px;
+  color: #6b7280;
+}
+
+.distill-fav-empty .distill-fav-empty-icon {
+  font-size: 40px;
+  line-height: 1;
+  margin-bottom: 14px;
+}
+
+.distill-fav-empty p {
+  font-size: 14px;
+  line-height: 1.6;
+}

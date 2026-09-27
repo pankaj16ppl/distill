@@ -13,6 +13,8 @@ const historyRoutes = require("./routes/historyroutes");
 const trendingRoutes = require("./routes/trendingRoutes");
 const ratingRoutes = require("./routes/ratingroutes");
 
+const favoriteRoutes = require("./routes/favoriteroutes");
+
 
 app.use(cors());
 app.use(express.json());
@@ -25,9 +27,20 @@ app.use("/api/auth", authRoutes);
 app.use("/api/history", historyRoutes);
 app.use("/api/trending", trendingRoutes);
 app.use("/api/ratings", ratingRoutes);
+app.use("/api/favorites", favoriteRoutes);
 
 // Connect to Neon PostgreSQL
 require("./config/db");
+
+// Make sure the (new, additive-only) favorites table exists.
+// Every other table is managed outside this repo, so this is the only
+// table the app creates for itself — safe to run on every boot.
+require("./models/favoritemodel")
+    .ensureFavoritesTable()
+    .then(() => console.log("Favorites table ready ✅"))
+    .catch((err) =>
+        console.error("Failed to ensure favorites table:", err.message)
+    );
 
 app.get("/", (req, res) => {
     res.send("Distill Backend API is running");

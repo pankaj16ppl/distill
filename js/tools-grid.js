@@ -28,7 +28,7 @@ function toolGridCard(tool, badgeText) {
     : "No ratings yet";
 
   return `
-    <a
+    
       href="${tool.official_website || tool.website || '#'}"
       target="_blank"
       rel="noopener noreferrer"
@@ -98,7 +98,9 @@ function renderTrendingGrid(containerId, tools) {
         <div
           class="bg-white rounded-card border border-line p-4 relative rec-card"
           style="height: 125px !important; min-height: 125px !important; max-height: 125px !important; align-self: start !important;"
+          data-tool-id="${tool.id ?? ""}"
         >
+          ${window.favoriteStarMarkup ? window.favoriteStarMarkup("tool", tool.id) : ""}
 
           <div class="flex items-start gap-3">
 
@@ -139,7 +141,7 @@ function renderTrendingGrid(containerId, tools) {
             ${
               tool.official_website
                 ? `
-                  <a
+                  
                     href="${tool.official_website}"
                     target="_blank"
                     rel="noopener noreferrer"
@@ -160,5 +162,9 @@ function renderTrendingGrid(containerId, tools) {
 
   if (window.lucide) {
     lucide.createIcons();
+  }
+
+  if (typeof window.wireFavoriteStars === "function") {
+    window.wireFavoriteStars(root, tools);
   }
 }

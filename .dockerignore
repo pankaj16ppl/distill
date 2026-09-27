@@ -1,0 +1,20 @@
+# Controls what Dockerfile.frontend's "COPY . ." picks up.
+# Everything listed here is left OUT of the frontend image.
+
+backend/
+node_modules/
+.git/
+.vscode/
+.postman/
+postman/
+views/
+bin/
+routes/
+app.js
+package.json
+package-lock.json
+*.md
+*.backup
+Dockerfile*
+docker-compose.yml
+.dockerignore

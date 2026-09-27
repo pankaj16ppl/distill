@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { id: "dashboard", href: "dashboard.html", icon: "layout-dashboard", label: "Dashboard" },
   { id: "offers", href: "offers.html", icon: "tag", label: "Offers" },
   { id: "trendy", href: "trendy.html", icon: "flame", label: "Trending" },
+  { id: "favorites", href: "favorites.html", icon: "star", label: "Favorites" },
 ];
 
 const PAGE_TITLES = {
@@ -26,6 +27,7 @@ const PAGE_TITLES = {
   history: "History",
   offers: "Offers",
   trendy: "Trending",
+  favorites: "Favorites",
   profile: "Profile",
 };
 function historyPreviewMarkup() {
